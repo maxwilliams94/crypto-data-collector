@@ -1,5 +1,20 @@
 package ms.maxwillia.cryptodata.websocket;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
+
+import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.stream.Collectors;
+
+import ms.maxwillia.cryptodata.model.CryptoTick;
+
+
 public class CoinbaseWebSocketClient extends BaseExchangeClient {
     private static final String COINBASE_WS_URL = "wss://ws-feed.pro.coinbase.com";
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -20,7 +35,6 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
                     handleMessage(message);
                 }
 
-                @Override
                 public void onOpen(ServerHandshake handshake) {
                     setStatus(ConnectionStatus.CONNECTED);
                     subscribeToSymbols();
@@ -93,10 +107,11 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
             subscribeMessage.put("type", "subscribe");
             
             // Convert symbols to Coinbase format
-            List<String> coinbaseSymbols = symbols.stream()
-                .map(s -> s.replace("usdt", "-USD").toUpperCase())
-                .collect(Collectors.toList());
-            
+            List<JsonNode> coinbaseSymbols = symbols.stream()
+                    .map(s -> s.replace("usdt", "-USD").toUpperCase())
+                    .map(symbol -> objectMapper.createObjectNode().put("id", symbol))
+                    .collect(Collectors.toList());
+
             subscribeMessage.putArray("product_ids").addAll(coinbaseSymbols);
             subscribeMessage.putArray("channels").add("matches");
 
@@ -124,7 +139,7 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
                 setStatus(ConnectionStatus.ERROR);
             }
         } catch (Exception e) {
-            logger.error("Error processing message: " + message, e);
+            logger.error("Error processing message: {}", message, e);
         }
     }
 
@@ -147,7 +162,7 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
     }
 
     // Factory method for convenience
-    public static CoinbaseWebSocketClient forSymbols(BlockingQueue<CryptoTick> dataQueue, String... symbols) {
+    public static ExchangeWebSocketClient forSymbols(BlockingQueue<CryptoTick> dataQueue, String... symbols) {
         return new CoinbaseWebSocketClient(Arrays.asList(symbols), dataQueue);
     }
 }

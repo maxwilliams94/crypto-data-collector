@@ -1,6 +1,12 @@
 package ms.maxwillia.cryptodata.storage;
 
 
+import ms.maxwillia.cryptodata.model.CryptoTick;
+
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+
 public class CsvStorage {
     private final String filename;
     private final PrintWriter writer;

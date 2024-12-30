@@ -7,6 +7,7 @@
 
 plugins {
     // Apply the application plugin to add support for building a CLI application in Java.
+    java
     application
 }
 
@@ -16,13 +17,22 @@ repositories {
 }
 
 dependencies {
-    // Use JUnit Jupiter for testing.
-    testImplementation(libs.junit.jupiter)
+    // WebSocket client library for real-time data streaming
+    implementation("org.java-websocket:Java-WebSocket:1.5.4")
 
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // Jackson for JSON processing
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
 
-    // This dependency is used by the application.
-    implementation(libs.guava)
+    // Logging framework
+    implementation("org.slf4j:slf4j-api:2.0.9")         // SLF4J API
+    implementation("ch.qos.logback:logback-classic:1.4.11")  // Logback implementation
+
+    // OkHttp for REST API calls
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Testing dependencies
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.

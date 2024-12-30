@@ -1,3 +1,5 @@
+package ms.maxwillia.cryptodata.model;
+
 public record CryptoTick(
     String symbol,
     double price,      // Price in USD

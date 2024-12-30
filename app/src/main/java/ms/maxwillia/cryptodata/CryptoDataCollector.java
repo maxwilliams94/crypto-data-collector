@@ -1,8 +1,10 @@
 package ms.maxwillia.cryptodata;
 
-import com.cryptodata.model.CryptoTick;
-import com.cryptodata.storage.CsvStorage;
-import com.cryptodata.websocket.BinanceWebSocketClient;
+import ms.maxwillia.cryptodata.model.CryptoTick;
+import ms.maxwillia.cryptodata.storage.CsvStorage;
+import ms.maxwillia.cryptodata.websocket.BaseExchangeClient;
+import ms.maxwillia.cryptodata.websocket.BinanceWebSocketClient;
+import ms.maxwillia.cryptodata.websocket.ExchangeWebSocketClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +20,7 @@ public class CryptoDataCollector {
     
     private final BlockingQueue<CryptoTick> dataQueue;
     private final CsvStorage storage;
-    private final List<BinanceWebSocketClient> clients;
+    private final List<ExchangeWebSocketClient> clients;
     private volatile boolean running = true;
 
     public CryptoDataCollector(String[] symbols) throws IOException {
@@ -27,7 +29,7 @@ public class CryptoDataCollector {
         this.clients = new ArrayList<>();
 
         for (String symbol : symbols) {
-            BinanceWebSocketClient client = new BinanceWebSocketClient(symbol, dataQueue);
+            BinanceWebSocketClient client = BinanceWebSocketClient.forSymbols(dataQueue, symbol);
             clients.add(client);
         }
     }
@@ -36,7 +38,7 @@ public class CryptoDataCollector {
         logger.info("Starting data collection for {} symbols", clients.size());
         
         // Start WebSocket connections
-        for (BinanceWebSocketClient client : clients) {
+        for (ExchangeWebSocketClient client : clients) {
             client.connect();
         }
 
@@ -70,8 +72,8 @@ public class CryptoDataCollector {
     public void stop() {
         logger.info("Stopping data collection");
         running = false;
-        for (BinanceWebSocketClient client : clients) {
-            client.close();
+        for (ExchangeWebSocketClient client : clients) {
+            client.disconnect();
         }
         storage.close();
     }

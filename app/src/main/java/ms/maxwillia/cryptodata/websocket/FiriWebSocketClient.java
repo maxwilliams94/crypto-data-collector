@@ -1,6 +1,6 @@
-package com.cryptodata.websocket;
+package ms.maxwillia.cryptodata.websocket;
 
-import com.cryptodata.model.CryptoTick;
+import ms.maxwillia.cryptodata.model.CryptoTick;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,12 +15,6 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
-import com.cryptodata.model.CryptoTick;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.*;
@@ -146,6 +140,47 @@ public class FiriWebSocketClient extends BaseExchangeClient {
     }
 
     @Override
+    public boolean connect() {
+        try {
+            setStatus(ConnectionStatus.CONNECTING);
+
+            wsClient = new WebSocketClient(URI.create(FIRI_WS_URL)) {
+                @Override
+                public void onMessage(String message) {
+                    handleMessage(message);
+                }
+
+                @Override
+                public void onOpen(ServerHandshake handshake) {
+                    setStatus(ConnectionStatus.CONNECTED);
+                    subscribeToSymbols();
+                }
+
+                @Override
+                public void onClose(int code, String reason, boolean remote) {
+                    logger.info("Firi connection closed: {} (code: {})", reason, code);
+                    setStatus(ConnectionStatus.DISCONNECTED);
+                    if (remote) {
+                        handleReconnect();
+                    }
+                }
+
+                @Override
+                public void onError(Exception ex) {
+                    logger.error("Firi WebSocket error", ex);
+                    setStatus(ConnectionStatus.ERROR);
+                }
+            };
+
+            return wsClient.connectBlocking();
+        } catch (Exception e) {
+            logger.error("Error connecting to Firi", e);
+            setStatus(ConnectionStatus.ERROR);
+            return false;
+        }
+    }
+
+    @Override
     protected void subscribeToSymbols() {
         try {
             setStatus(ConnectionStatus.SUBSCRIBING);
@@ -167,7 +202,21 @@ public class FiriWebSocketClient extends BaseExchangeClient {
         }
     }
 
+    private void handleMessage(String message) {
+        try {
+            JsonNode node = objectMapper.readTree(message);
 
+            // Check if it's a trade message
+            if (node.has("event") && "trade".equals(node.get("event").asText())) {
+                processTrade(node);
+            } else if (node.has("event") && "error".equals(node.get("event").asText())) {
+                logger.error("Firi error message: {}", message);
+                setStatus(ConnectionStatus.ERROR);
+            }
+        } catch (Exception e) {
+            logger.error("Error processing message: " + message, e);
+        }
+    }
     @Override
     public void disconnect() {
         if (wsClient != null) {
