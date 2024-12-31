@@ -1,5 +1,8 @@
 # TODO
 
+## Critical
+- [ ] Properly parse command line arguments for symbols
+
 ## Features
 
 ## Clean-up

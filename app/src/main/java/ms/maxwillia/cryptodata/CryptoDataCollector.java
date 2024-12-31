@@ -1,19 +1,19 @@
 package ms.maxwillia.cryptodata;
 
-import ms.maxwillia.cryptodata.model.CryptoTick;
-import ms.maxwillia.cryptodata.storage.CsvStorage;
-import ms.maxwillia.cryptodata.websocket.BaseExchangeClient;
-import ms.maxwillia.cryptodata.websocket.BinanceWebSocketClient;
-import ms.maxwillia.cryptodata.websocket.ExchangeWebSocketClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ms.maxwillia.cryptodata.model.CryptoTick;
+import ms.maxwillia.cryptodata.storage.CsvStorage;
+import ms.maxwillia.cryptodata.websocket.*;
+import ms.maxwillia.cryptodata.websocket.ExchangeWebSocketClient;
 
 public class CryptoDataCollector {
     private static final Logger logger = LoggerFactory.getLogger(CryptoDataCollector.class);
@@ -29,7 +29,7 @@ public class CryptoDataCollector {
         this.clients = new ArrayList<>();
 
         for (String symbol : symbols) {
-            BinanceWebSocketClient client = BinanceWebSocketClient.forSymbols(dataQueue, symbol);
+            FiriWebSocketClient client = FiriWebSocketClient.forSymbols(dataQueue, symbol);
             clients.add(client);
         }
     }
@@ -79,7 +79,8 @@ public class CryptoDataCollector {
     }
 
     public static void main(String[] args) throws IOException {
-        String[] symbols = {"btcusdt", "ethusdt"};
+        System.out.println(args.toString());
+        String[] symbols = args.length > 0 ? args : new String[]{};
         CryptoDataCollector collector = new CryptoDataCollector(symbols);
         
         // Add shutdown hook for graceful shutdown
