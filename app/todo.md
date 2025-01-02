@@ -2,6 +2,8 @@
 
 ## Critical
 - [ ] Properly parse command line arguments for symbols
+- [ ] Coinbase websocket implementation
+- [ ] Firi rest api implementation
 
 ## Features
 

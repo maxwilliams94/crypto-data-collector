@@ -24,10 +24,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class FiriWebSocketClient extends BaseExchangeClient {
-    private static final String FIRI_WS_URL = "wss://ws.firi.com/v2/ws";
+    private static final String FIRI_REST_API_URL = "https://api.firi.com";
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private WebSocketClient wsClient;
-    
+
     // Latest USDC-NOK rate for USD conversion
     private final AtomicReference<Double> usdcNokRate = new AtomicReference<>(null);
     
@@ -52,10 +51,9 @@ public class FiriWebSocketClient extends BaseExchangeClient {
 
     // Ensure USDC-NOK is included in the subscription list
     private static List<String> validateAndAddUsdcMarket(List<String> requestedMarkets) {
-        Set<String> markets = new HashSet<>(requestedMarkets.stream()
-            .map(String::toUpperCase)
-            .filter(AVAILABLE_MARKETS::contains)
-            .collect(Collectors.toList()));
+        Set<String> markets = requestedMarkets.stream()
+                .map(String::toUpperCase)
+                .filter(AVAILABLE_MARKETS::contains).collect(Collectors.toSet());
         
         // Always add USDC-NOK for USD conversion
         markets.add("USDC-NOK");
@@ -144,56 +142,18 @@ public class FiriWebSocketClient extends BaseExchangeClient {
         try {
             setStatus(ConnectionStatus.CONNECTING);
 
-            wsClient = new WebSocketClient(URI.create(FIRI_WS_URL)) {
-                @Override
-                public void onMessage(String message) {
-                    handleMessage(message);
-                }
-
-                @Override
-                public void onOpen(ServerHandshake handshake) {
-                    setStatus(ConnectionStatus.CONNECTED);
-                    subscribeToSymbols();
-                }
-
-                @Override
-                public void onClose(int code, String reason, boolean remote) {
-                    logger.info("Firi connection closed: {} (code: {})", reason, code);
-                    setStatus(ConnectionStatus.DISCONNECTED);
-                    if (remote) {
-                        handleReconnect();
-                    }
-                }
-
-                @Override
-                public void onError(Exception ex) {
-                    logger.error("Firi WebSocket error", ex);
-                    setStatus(ConnectionStatus.ERROR);
-                }
-            };
-
-            return wsClient.connectBlocking();
         } catch (Exception e) {
             logger.error("Error connecting to Firi", e);
             setStatus(ConnectionStatus.ERROR);
             return false;
         }
+        return false;
     }
 
     @Override
     protected void subscribeToSymbols() {
         try {
             setStatus(ConnectionStatus.SUBSCRIBING);
-            
-            for (String market : symbols) {
-                ObjectNode subscribeMessage = objectMapper.createObjectNode();
-                subscribeMessage.put("event", "subscribe");
-                subscribeMessage.put("channel", "trades");
-                subscribeMessage.put("market", market);
-                
-                wsClient.send(objectMapper.writeValueAsString(subscribeMessage));
-                logger.info("Sent subscription request for market: {}", market);
-            }
             
             setStatus(ConnectionStatus.SUBSCRIBED);
         } catch (Exception e) {
@@ -219,15 +179,12 @@ public class FiriWebSocketClient extends BaseExchangeClient {
     }
     @Override
     public void disconnect() {
-        if (wsClient != null) {
-            wsClient.close();
-        }
         setStatus(ConnectionStatus.DISCONNECTED);
     }
 
     @Override
     public boolean isConnected() {
-        return wsClient != null && wsClient.isOpen();
+        return false;
     }
 
     @Override

@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+
 public class CsvStorage {
     private final String filename;
     private final PrintWriter writer;
@@ -16,6 +17,8 @@ public class CsvStorage {
         this.writer = new PrintWriter(new FileWriter(filename, true));
         writeHeader();
     }
+
+
 
     private void writeHeader() {
         writer.println("symbol,price,volume,timestamp");

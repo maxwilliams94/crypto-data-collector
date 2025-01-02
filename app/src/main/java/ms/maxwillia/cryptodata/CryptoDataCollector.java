@@ -25,7 +25,7 @@ public class CryptoDataCollector {
 
     public CryptoDataCollector(String[] symbols) throws IOException {
         this.dataQueue = new LinkedBlockingQueue<>(1000);
-        this.storage = new CsvStorage("crypto_data.csv");
+        this.storage = new CsvStorage(System.getProperty("java.io.tmpdir") + "crypto_data.csv");
         this.clients = new ArrayList<>();
 
         for (String symbol : symbols) {
