@@ -5,23 +5,52 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
-
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.interfaces.ECPrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import io.github.cdimascio.dotenv.Dotenv;
 import java.net.URI;
+import java.io.StringReader;
+import java.time.Instant;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.stream.Collectors;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 
 
 public class CoinbaseWebSocketClient extends BaseExchangeClient {
-    private static final String COINBASE_WS_URL = "wss://ws-feed.pro.coinbase.com";
+    private static final String COINBASE_WS_URL = "wss://advanced-trade-ws.coinbase.com";
     private final ObjectMapper objectMapper = new ObjectMapper();
     private WebSocketClient wsClient;
+    private static final Set<String> AVAILABLE_MARKETS = new HashSet<>(Arrays.asList(
+            "ADA-USDC",
+            "BNB-USDC",
+            "DAI-USDC",
+            "SOL-USDC",
+            "LTC-USDC",
+            "DOT-USDC",
+            "XRP-USDC",
+            "BTC-USDC",
+            "ETH-USDC"
+    ));
+    private static final String SIGNATURE_ALGORITHM = "ES256";
 
-    public CoinbaseWebSocketClient(List<String> symbols, BlockingQueue<CryptoTick> dataQueue) {
-        super("Coinbase", symbols, dataQueue);
+    public CoinbaseWebSocketClient(String symbol, BlockingQueue<CryptoTick> dataQueue) {
+        super("Coinbase", symbol, dataQueue);
     }
 
     @Override
@@ -37,7 +66,7 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
 
                 public void onOpen(ServerHandshake handshake) {
                     setStatus(ConnectionStatus.CONNECTED);
-                    subscribeToSymbols();
+                    subscribeToSymbol();
                 }
 
                 @Override
@@ -99,7 +128,7 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
     }
 
     @Override
-    protected void subscribeToSymbols() {
+    protected void subscribeToSymbol() {
         try {
             setStatus(ConnectionStatus.SUBSCRIBING);
             
@@ -107,16 +136,12 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
             subscribeMessage.put("type", "subscribe");
             
             // Convert symbols to Coinbase format
-            List<JsonNode> coinbaseSymbols = symbols.stream()
-                    .map(s -> s.replace("usdt", "-USD").toUpperCase())
-                    .map(symbol -> objectMapper.createObjectNode().put("id", symbol))
-                    .collect(Collectors.toList());
-
-            subscribeMessage.putArray("product_ids").addAll(coinbaseSymbols);
-            subscribeMessage.putArray("channels").add("matches");
-
+            symbol = symbol.toUpperCase();
+            subscribeMessage.putArray("product_ids").add(symbol);
+            subscribeMessage.put("channel", "ticker");
+            logger.debug("Sending subscription request: {}", objectMapper.writeValueAsString(subscribeMessage));
             wsClient.send(objectMapper.writeValueAsString(subscribeMessage));
-            logger.info("Sent subscription request for symbols: {}", coinbaseSymbols);
+            logger.info("Sent subscription request for symbol: {}", symbol);
             
             setStatus(ConnectionStatus.SUBSCRIBED);
         } catch (Exception e) {
@@ -128,28 +153,34 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
     private void handleMessage(String message) {
         try {
             JsonNode node = objectMapper.readTree(message);
-            String type = node.get("type").asText();
+            String channel = node.get("channel").asText();
             
-            if ("match".equals(type)) {
-                processTrade(node);
-            } else if ("subscriptions".equals(type)) {
-                logger.info("Subscription confirmed: {}", message);
-            } else if ("error".equals(type)) {
-                logger.error("Coinbase error message: {}", message);
-                setStatus(ConnectionStatus.ERROR);
-            }
+            if ("ticker".equals(channel)) {
+                processSingleTicker(node);
+            } else {
+                logger.error("Unexpected channel: {}", channel);
+                logger.error(message);
+                }
         } catch (Exception e) {
             logger.error("Error processing message: {}", message, e);
         }
     }
 
-    private void processTrade(JsonNode node) {
+    private void processSingleTicker(JsonNode node) {
+        logger.debug("Processing ticker: channel: {}, sequence: {}", node.get("channel"), node.get("sequence_num"));
+        if (node.get("sequence_num").asLong() <= lastSequenceNumber) {
+            return;
+        }
         try {
             CryptoTick tick = new CryptoTick(
-                node.get("product_id").asText().replace("-USD", "USDT"),
+                node.get("events").get("product_id").asText(),
                 node.get("price").asDouble(),
-                node.get("size").asDouble(),
-                parseTimestamp(node.get("time").asText())
+                node.get("volume_24_h").asDouble(),
+                node.get("best_bid").asDouble(),
+                node.get("best_bid_quantity").asDouble(),
+                node.get("best_ask").asDouble(),
+                node.get("best_ask_quantity").asDouble(),
+                parseTimestamp(node.get("timestamp").asText())
             );
             offerTick(tick);
         } catch (Exception e) {
@@ -161,8 +192,70 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
         return java.time.Instant.parse(timestamp).toEpochMilli();
     }
 
+    private String generateWT(String uri) throws JOSEException {
+        try {
+            // Load environment variables
+            Dotenv dotenv = Dotenv.load();
+            String privateKeyPEM = dotenv.get("COINBASE_PRIVATE_KEY").replace("\\n", "\n");
+            String name = dotenv.get("COINBASE_KEY_NAME");
+
+            // Create header
+            Map<String, Object> headerParams = new HashMap<>();
+            headerParams.put("alg", SIGNATURE_ALGORITHM);
+            headerParams.put("typ", "JWT");
+            headerParams.put("kid", name);
+            headerParams.put("nonce", String.valueOf(Instant.now().getEpochSecond()));
+
+            // Create claims
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("iss", "cdp");
+            claims.put("nbf", Instant.now().getEpochSecond());
+            claims.put("exp", Instant.now().getEpochSecond() + 120); // 2 minute expiry
+            claims.put("sub", name);
+            claims.put("uri", "GET ");
+
+            // Load private key
+            PEMParser pemParser = new PEMParser(new StringReader(privateKeyPEM));
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
+            Object keyPair = pemParser.readObject();
+            PrivateKey privateKey;
+
+            if (keyPair instanceof PrivateKey) {
+                privateKey = (PrivateKey) keyPair;
+            } else if (keyPair instanceof org.bouncycastle.openssl.PEMKeyPair) {
+                privateKey = converter.getPrivateKey(((org.bouncycastle.openssl.PEMKeyPair) keyPair).getPrivateKeyInfo());
+            } else {
+                throw new JOSEException("Invalid private key format");
+            }
+            pemParser.close();
+
+            // Convert to ECPrivateKey
+            KeyFactory keyFactory = KeyFactory.getInstance("EC");
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKey.getEncoded());
+            ECPrivateKey ecPrivateKey = (ECPrivateKey) keyFactory.generatePrivate(keySpec);
+
+            // Create and sign JWT
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                    .customParams(headerParams)
+                    .build();
+
+            JWTClaimsSet.Builder claimsSetBuilder = new JWTClaimsSet.Builder();
+            claims.forEach(claimsSetBuilder::claim);
+            JWTClaimsSet claimsSet = claimsSetBuilder.build();
+
+            SignedJWT signedJWT = new SignedJWT(header, claimsSet);
+            JWSSigner signer = new ECDSASigner(ecPrivateKey);
+            signedJWT.sign(signer);
+
+            return signedJWT.serialize();
+
+        } catch (Exception e) {
+            throw new JOSEException("Error generating JWT", e);
+        }
+    }
+
     // Factory method for convenience
-    public static ExchangeWebSocketClient forSymbols(BlockingQueue<CryptoTick> dataQueue, String... symbols) {
-        return new CoinbaseWebSocketClient(Arrays.asList(symbols), dataQueue);
+    public static ExchangeWebSocketClient forSymbol(BlockingQueue<CryptoTick> dataQueue, String symbol) {
+        return new CoinbaseWebSocketClient(symbol, dataQueue);
     }
 }

@@ -1,46 +1,38 @@
 package ms.maxwillia.cryptodata;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 import ms.maxwillia.cryptodata.storage.CsvStorage;
-import ms.maxwillia.cryptodata.websocket.*;
 import ms.maxwillia.cryptodata.websocket.ExchangeWebSocketClient;
+import ms.maxwillia.cryptodata.websocket.CoinbaseWebSocketClient;
 
 public class CryptoDataCollector {
     private static final Logger logger = LoggerFactory.getLogger(CryptoDataCollector.class);
     
     private final BlockingQueue<CryptoTick> dataQueue;
     private final CsvStorage storage;
-    private final List<ExchangeWebSocketClient> clients;
+    private final ExchangeWebSocketClient client;
     private volatile boolean running = true;
 
     public CryptoDataCollector(String[] symbols) throws IOException {
         this.dataQueue = new LinkedBlockingQueue<>(1000);
         this.storage = new CsvStorage(System.getProperty("java.io.tmpdir") + "crypto_data.csv");
-        this.clients = new ArrayList<>();
 
-        for (String symbol : symbols) {
-            FiriWebSocketClient client = FiriWebSocketClient.forSymbols(dataQueue, symbol);
-            clients.add(client);
-        }
+        this.client = new CoinbaseWebSocketClient(symbols[0], dataQueue);
     }
 
     public void start() {
-        logger.info("Starting data collection for {} symbols", clients.size());
+        logger.info("Starting data collection for {}", client.getSubscribedSymbol());
         
         // Start WebSocket connections
-        for (ExchangeWebSocketClient client : clients) {
-            client.connect();
-        }
+        client.connect();
 
         // Start processing thread
         Thread processor = new Thread(this::processData, "DataProcessor");
@@ -72,15 +64,17 @@ public class CryptoDataCollector {
     public void stop() {
         logger.info("Stopping data collection");
         running = false;
-        for (ExchangeWebSocketClient client : clients) {
-            client.disconnect();
-        }
+        client.disconnect();
         storage.close();
     }
 
     public static void main(String[] args) throws IOException {
-        System.out.println(args.toString());
+        logger.debug("args: {}", args.toString());
         String[] symbols = args.length > 0 ? args : new String[]{};
+        if (symbols.length == 0) {
+            logger.error("No symbols provided. Please provide at least one symbol.");
+            return;
+        }
         CryptoDataCollector collector = new CryptoDataCollector(symbols);
         
         // Add shutdown hook for graceful shutdown

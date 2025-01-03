@@ -1,7 +1,5 @@
 package ms.maxwillia.cryptodata.websocket;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,13 +10,14 @@ import ms.maxwillia.cryptodata.model.CryptoTick;
 public abstract class BaseExchangeClient implements ExchangeWebSocketClient {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     protected final BlockingQueue<CryptoTick> dataQueue;
-    protected final List<String> symbols;
     protected volatile ConnectionStatus status;
     protected final String exchangeName;
+    protected long lastSequenceNumber = -1;
+    protected String symbol;
 
-    protected BaseExchangeClient(String exchangeName, List<String> symbols, BlockingQueue<CryptoTick> dataQueue) {
+    protected BaseExchangeClient(String exchangeName, String symbol, BlockingQueue<CryptoTick> dataQueue) {
         this.exchangeName = exchangeName;
-        this.symbols = symbols;
+        this.symbol = symbol;
         this.dataQueue = dataQueue;
         this.status = ConnectionStatus.DISCONNECTED;
     }
@@ -29,8 +28,8 @@ public abstract class BaseExchangeClient implements ExchangeWebSocketClient {
     }
 
     @Override
-    public List<String> getSubscribedSymbols() {
-        return new ArrayList<>(symbols);
+    public String getSubscribedSymbol() {
+        return this.symbol;
     }
 
     @Override
@@ -52,7 +51,7 @@ public abstract class BaseExchangeClient implements ExchangeWebSocketClient {
 
     protected abstract void handleReconnect();
 
-    protected abstract void subscribeToSymbols();
+    protected abstract void subscribeToSymbol();
 
     public static ExchangeWebSocketClient forSymbols(BlockingQueue<CryptoTick> dataQueue, String... symbols) {
         throw new UnsupportedOperationException("Factory method must be implemented by concrete exchange clients");

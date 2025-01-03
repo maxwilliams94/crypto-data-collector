@@ -21,15 +21,19 @@ public class CsvStorage {
 
 
     private void writeHeader() {
-        writer.println("symbol,price,volume,timestamp");
+        writer.println(CryptoTick.header());
         writer.flush();
     }
 
     public void storeTick(CryptoTick tick) {
-        writer.printf("%s,%.8f,%.8f,%d%n",
+        writer.printf(CryptoTick.headerFormat(),
             tick.symbol(),
             tick.price(),
-            tick.volume(),
+            tick.volume_24_h(),
+            tick.best_bid(),
+            tick.best_bid_quantity(),
+            tick.best_ask(),
+            tick.best_ask_quantity(),
             tick.timestamp()
         );
         writer.flush();

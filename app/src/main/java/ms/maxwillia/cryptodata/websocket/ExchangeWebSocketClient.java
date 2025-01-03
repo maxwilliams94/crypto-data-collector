@@ -1,8 +1,6 @@
 package ms.maxwillia.cryptodata.websocket;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
-import ms.maxwillia.cryptodata.model.CryptoTick;
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 
 // Core interface for all exchange clients
@@ -28,7 +26,7 @@ public interface ExchangeWebSocketClient {
      * Get the subscribed symbols
      * @return list of symbols
      */
-    List<String> getSubscribedSymbols();
+    String getSubscribedSymbol();
     
     /**
      * Check if client is connected
@@ -48,7 +46,7 @@ public interface ExchangeWebSocketClient {
      */
     boolean reconnect();
 
-    static ExchangeWebSocketClient forSymbols(BlockingQueue<CryptoTick> dataQueue, String... symbols) {
+    static ExchangeWebSocketClient forSymbol(BlockingQueue<CryptoTick> dataQueue, String symbol) {
         throw new UnsupportedOperationException("Factory method must be implemented by concrete exchange clients");
     }
 }

@@ -19,13 +19,17 @@ repositories {
 dependencies {
     // WebSocket client library for real-time data streaming
     implementation("org.java-websocket:Java-WebSocket:1.5.4")
+    // JWT Authentication for Coinbase
+    implementation("com.nimbusds:nimbus-jose-jwt:10.0.1")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.79")
+    implementation("io.github.cdimascio:java-dotenv:5.2.2")
 
     // Jackson for JSON processing
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
 
     // Logging framework
     implementation("org.slf4j:slf4j-api:2.0.9")         // SLF4J API
-    implementation("ch.qos.logback:logback-classic:1.4.11")  // Logback implementation
+    implementation("ch.qos.logback:logback-classic:1.4.12")  // Logback implementation
 
     // OkHttp for REST API calls
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
