@@ -1,0 +1,86 @@
+{
+  "validMessages": {
+    "singleTicker": {
+      "channel": "ticker",
+      "sequence_num": 123456,
+      "timestamp": "2024-01-04T12:00:00.000Z",
+      "events": [{
+        "tickers": [{
+          "product_id": "BTC-USDC",
+          "price": "45000.00",
+          "volume_24_h": "1000.5",
+          "best_bid": "44999.00",
+          "best_bid_quantity": "1.5",
+          "best_ask": "45001.00",
+          "best_ask_quantity": "2.0"
+        }]
+      }]
+    },
+    "duplicateSequence": {
+      "channel": "ticker",
+      "sequence_num": 123456,
+      "timestamp": "2024-01-04T12:00:01.000Z",
+      "events": [{
+        "tickers": [{
+          "product_id": "BTC-USDC",
+          "price": "45002.00",
+          "volume_24_h": "1001.5",
+          "best_bid": "45001.00",
+          "best_bid_quantity": "1.6",
+          "best_ask": "45003.00",
+          "best_ask_quantity": "2.1"
+        }]
+      }]
+    },
+    "newSequence": {
+      "channel": "ticker",
+      "sequence_num": 123457,
+      "timestamp": "2024-01-04T12:00:02.000Z",
+      "events": [{
+        "tickers": [{
+          "product_id": "BTC-USDC",
+          "price": "45003.00",
+          "volume_24_h": "1002.5",
+          "best_bid": "45002.00",
+          "best_bid_quantity": "1.7",
+          "best_ask": "45004.00",
+          "best_ask_quantity": "2.2"
+        }]
+      }]
+    }
+  },
+  "invalidMessages": {
+    "wrongChannel": {
+      "channel": "invalid_channel",
+      "sequence_num": 123458,
+      "timestamp": "2024-01-04T12:00:03.000Z",
+      "events": []
+    },
+    "missingRequired": {
+      "channel": "ticker",
+      "sequence_num": 123459,
+      "timestamp": "2024-01-04T12:00:04.000Z",
+      "events": [{
+        "tickers": [{
+          "product_id": "BTC-USDC",
+          "price": "45000.00"
+        }]
+      }]
+    },
+    "malformedJson": "{\"channel\": \"ticker\", \"sequence_num\": 123460, \"timestamp\": \"2024-01-04T12:00:05.000Z\", \"events\": [{"
+  },
+  "subscriptionMessages": {
+    "subscribe": {
+      "type": "subscribe",
+      "product_ids": ["BTC-USDC"],
+      "channel": "ticker"
+    },
+    "subscribeResponse": {
+      "type": "subscribed",
+      "channels": [{
+        "name": "ticker",
+        "product_ids": ["BTC-USDC"]
+      }]
+    }
+  }
+}

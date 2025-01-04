@@ -114,6 +114,7 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
 
     @Override
     protected void handleReconnect() {
+        // TODO: Should we have the sleep time be configurable?
         new Thread(() -> {
             try {
                 setStatus(ConnectionStatus.RECONNECTING);
