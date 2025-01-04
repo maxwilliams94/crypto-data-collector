@@ -1,0 +1,15 @@
+{
+  "channel": "subscriptions",
+  "client_id": "",
+  "timestamp": "2025-01-04T08:59:07.656655619Z",
+  "sequence_num": 1,
+  "events": [
+    {
+      "subscriptions": {
+        "ticker": [
+          "BTC-USD"
+        ]
+      }
+    }
+  ]
+}

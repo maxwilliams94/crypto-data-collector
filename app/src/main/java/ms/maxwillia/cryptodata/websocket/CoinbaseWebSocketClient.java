@@ -153,6 +153,7 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
     private void handleMessage(String message) {
         try {
             JsonNode node = objectMapper.readTree(message);
+            logger.debug("Received message: {}", message);
             String channel = node.get("channel").asText();
             
             if ("ticker".equals(channel)) {
@@ -169,21 +170,29 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
     private void processSingleTicker(JsonNode node) {
         logger.debug("Processing ticker: channel: {}, sequence: {}", node.get("channel"), node.get("sequence_num"));
         if (node.get("sequence_num").asLong() <= lastSequenceNumber) {
+            logger.debug("Skipping ticker: sequence number is not greater than last sequence number");
             return;
         }
+        lastSequenceNumber = node.get("sequence_num").asLong();
+        JsonNode ticker_event = node.get("events").get(0).get("tickers").get(0);
+        String timestampString = node.get("timestamp").asText();
+
         try {
             CryptoTick tick = new CryptoTick(
-                node.get("events").get("product_id").asText(),
-                node.get("price").asDouble(),
-                node.get("volume_24_h").asDouble(),
-                node.get("best_bid").asDouble(),
-                node.get("best_bid_quantity").asDouble(),
-                node.get("best_ask").asDouble(),
-                node.get("best_ask_quantity").asDouble(),
-                parseTimestamp(node.get("timestamp").asText())
+                ticker_event.get("product_id").asText(),
+                ticker_event.get("price").asDouble(),
+                ticker_event.get("volume_24_h").asDouble(),
+                ticker_event.get("best_bid").asDouble(),
+                ticker_event.get("best_bid_quantity").asDouble(),
+                ticker_event.get("best_ask").asDouble(),
+                ticker_event.get("best_ask_quantity").asDouble(),
+                parseTimestamp(timestampString)
             );
             offerTick(tick);
-        } catch (Exception e) {
+        } catch (NullPointerException e) {
+            logger.error("Unexpected ticker event format", e);
+        }
+        catch (Exception e) {
             logger.error("Error creating tick from trade data", e);
         }
     }

@@ -1,5 +1,9 @@
 # TODO
 
+## Blocking
+- [ ] Unit tests for CoinbaseWebSocketClient handling of ticker events
+- [ ] Unit tests for CoinbaseWebSocketClient handling of subscription events
+
 ## Critical
 - [ ] Properly parse command line arguments for symbols
 - [ ] Coinbase websocket implementation
