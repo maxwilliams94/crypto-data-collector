@@ -6,7 +6,7 @@
       "timestamp": "2024-01-04T12:00:00.000Z",
       "events": [{
         "tickers": [{
-          "product_id": "BTC-USDC",
+          "product_id": "BTC-USD",
           "price": "45000.00",
           "volume_24_h": "1000.5",
           "best_bid": "44999.00",
@@ -22,7 +22,7 @@
       "timestamp": "2024-01-04T12:00:01.000Z",
       "events": [{
         "tickers": [{
-          "product_id": "BTC-USDC",
+          "product_id": "BTC-USD",
           "price": "45002.00",
           "volume_24_h": "1001.5",
           "best_bid": "45001.00",
@@ -38,7 +38,7 @@
       "timestamp": "2024-01-04T12:00:02.000Z",
       "events": [{
         "tickers": [{
-          "product_id": "BTC-USDC",
+          "product_id": "BTC-USD",
           "price": "45003.00",
           "volume_24_h": "1002.5",
           "best_bid": "45002.00",
@@ -62,7 +62,7 @@
       "timestamp": "2024-01-04T12:00:04.000Z",
       "events": [{
         "tickers": [{
-          "product_id": "BTC-USDC",
+          "product_id": "BTC-USD",
           "price": "45000.00"
         }]
       }]
@@ -72,15 +72,23 @@
   "subscriptionMessages": {
     "subscribe": {
       "type": "subscribe",
-      "product_ids": ["BTC-USDC"],
+      "product_ids": ["BTC-USD"],
       "channel": "ticker"
     },
     "subscribeResponse": {
-      "type": "subscribed",
-      "channels": [{
-        "name": "ticker",
-        "product_ids": ["BTC-USDC"]
-      }]
+      "channel": "subscriptions",
+      "client_id": "",
+      "timestamp": "2025-01-04T08:59:07.656655619Z",
+      "sequence_num": 1,
+      "events": [
+        {
+          "subscriptions": {
+            "ticker": [
+              "BTC-USD"
+            ]
+          }
+        }
+      ]
     }
   }
 }

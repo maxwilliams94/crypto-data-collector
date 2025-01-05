@@ -22,12 +22,10 @@ import io.github.cdimascio.dotenv.Dotenv;
 import java.net.URI;
 import java.io.StringReader;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 
@@ -44,7 +42,7 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
             "LTC-USDC",
             "DOT-USDC",
             "XRP-USDC",
-            "BTC-USDC",
+            "BTC-USD",
             "ETH-USDC"
     ));
     private static final String SIGNATURE_ALGORITHM = "ES256";
@@ -114,7 +112,6 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
 
     @Override
     protected void handleReconnect() {
-        // TODO: Should we have the sleep time be configurable?
         new Thread(() -> {
             try {
                 setStatus(ConnectionStatus.RECONNECTING);
@@ -131,7 +128,7 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
     @Override
     protected void subscribeToSymbol() {
         try {
-            setStatus(ConnectionStatus.SUBSCRIBING);
+            setStatus(ConnectionStatus.SUBSCRIBING); // This is changed to SUBSCRIBED once confirmation is received
             
             ObjectNode subscribeMessage = objectMapper.createObjectNode();
             subscribeMessage.put("type", "subscribe");
@@ -144,7 +141,6 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
             wsClient.send(objectMapper.writeValueAsString(subscribeMessage));
             logger.info("Sent subscription request for symbol: {}", symbol);
             
-            setStatus(ConnectionStatus.SUBSCRIBED);
         } catch (Exception e) {
             logger.error("Error subscribing to symbols", e);
             setStatus(ConnectionStatus.ERROR);
@@ -155,10 +151,20 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
         try {
             JsonNode node = objectMapper.readTree(message);
             logger.debug("Received message: {}", message);
+            if (node.get("sequence_num").asLong() <= lastSequenceNumber) {
+                logger.debug("Skipping ticker: sequence number is not greater than last sequence number");
+                return;
+            }
             String channel = node.get("channel").asText();
             
             if ("ticker".equals(channel)) {
+                if (getStatus() == ConnectionStatus.SUBSCRIBING) {
+                    logger.warn("Received ticker event before subscription confirmation. Disregarding.");
+                    return;
+                }
                 processSingleTicker(node);
+            } else if ("subscriptions".equals(channel)) {
+                processSubscriptions(node);
             } else {
                 logger.error("Unexpected channel: {}", channel);
                 logger.error(message);
@@ -170,11 +176,6 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
 
     private void processSingleTicker(JsonNode node) {
         logger.debug("Processing ticker: channel: {}, sequence: {}", node.get("channel"), node.get("sequence_num"));
-        if (node.get("sequence_num").asLong() <= lastSequenceNumber) {
-            logger.debug("Skipping ticker: sequence number is not greater than last sequence number");
-            return;
-        }
-        lastSequenceNumber = node.get("sequence_num").asLong();
         JsonNode ticker_event = node.get("events").get(0).get("tickers").get(0);
         String timestampString = node.get("timestamp").asText();
 
@@ -198,11 +199,47 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
         }
     }
 
+    private void processSubscriptions(JsonNode node) {
+        logger.debug("Processing subscription: {}", node);
+        lastSequenceNumber = node.get("sequence_num").asLong();
+        try {
+            JsonNode events = node.get("events");
+            if (events.isEmpty()) {
+                logger.error("No events in subscription message");
+                return;
+            }
+            for (JsonNode event : events) {
+                if (event.has("subscriptions")) {
+                    JsonNode subscribed_tickers = event.get("subscriptions").get("ticker");
+                    if (subscribed_tickers.isEmpty()) {
+                        logger.error("No tickers subscribed");
+                    } else {
+                        HashSet<String> tickers = StreamSupport.stream(subscribed_tickers.spliterator(), false)
+                                .map(JsonNode::asText)
+                                .collect(Collectors.toCollection(HashSet::new));
+                        if (tickers.contains(symbol) && tickers.size() == 1) {
+                            setStatus(ConnectionStatus.SUBSCRIBED);
+                        } else {
+                            logger.error("Unexpected/multiple tickers subscribed: {} (expected {})", tickers, symbol);
+                            setStatus(ConnectionStatus.ERROR);
+                            disconnect();
+                        }
+                    }
+                    return;
+                }
+            }
+        } catch (NullPointerException e) {
+                logger.error("Unexpected subscription event format", e);
+                return;
+            }
+        setStatus(ConnectionStatus.SUBSCRIBED);
+    }
+
     private long parseTimestamp(String timestamp) {
         return java.time.Instant.parse(timestamp).toEpochMilli();
     }
 
-    private String generateWT(String uri) throws JOSEException {
+    private String generateJWT(String uri) throws JOSEException {
         try {
             // Load environment variables
             Dotenv dotenv = Dotenv.load();

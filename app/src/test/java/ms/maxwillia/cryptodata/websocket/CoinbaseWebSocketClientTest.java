@@ -33,7 +33,7 @@ class CoinbaseWebSocketClientTest {
     private static final Path TEST_DATA_ROOT = Path.of("src/test/resources/websocket").toAbsolutePath();
     private CoinbaseWebSocketClient client;
     private BlockingQueue<CryptoTick> dataQueue;
-    private static final String TEST_SYMBOL = "BTC-USDC";
+    private static final String TEST_SYMBOL = "BTC-USD";
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private JsonNode testData;
 
@@ -82,7 +82,7 @@ class CoinbaseWebSocketClientTest {
         // Verify the tick was added to the queue
         CryptoTick tick = dataQueue.poll();
         assertNotNull(tick);
-        assertEquals("BTC-USDC", tick.symbol());
+        assertEquals("BTC-USD", tick.symbol());
         assertEquals(45000.00, tick.price());
         assertEquals(1000.5, tick.volume_24_h());
         assertEquals(44999.00, tick.best_bid());
@@ -138,7 +138,20 @@ class CoinbaseWebSocketClientTest {
                 "handleMessage",
                 String.class
         );
-        // Send first message
+
+        // Subscribe to symbol
+        client.connect();
+        String message = objectMapper.writeValueAsString(
+                testData.get("subscriptionMessages").get("subscribeResponse"));
+        assertDoesNotThrow(() -> {
+            ReflectionTestUtils.invokeMethod(
+                    client,
+                    handleMessage,
+                    message
+            );
+        });
+
+        // Handle Ticker data
         String message1 = objectMapper.writeValueAsString(
                 testData.get("validMessages").get("singleTicker"));
         ReflectionTestUtils.invokeMethod(
@@ -190,6 +203,35 @@ class CoinbaseWebSocketClientTest {
         assertEquals(1, sentProductIds.size());
         assertEquals(TEST_SYMBOL, sentProductIds.get(0).asText());
     }
+
+    @Test
+    void testHandleSuccessfulSubscribe() throws JsonProcessingException {
+        client.connect();
+        Method handleMessage = ReflectionTestUtils.getMethod(
+                CoinbaseWebSocketClient.class,
+                client,
+                "handleMessage",
+                String.class
+        );
+        String message = objectMapper.writeValueAsString(
+                testData.get("subscriptionMessages").get("subscribeResponse"));
+
+        assertDoesNotThrow(() -> {
+            ReflectionTestUtils.invokeMethod(
+                    client,
+                    handleMessage,
+                    message
+            );
+        });
+
+        // Verify the queue remains empty (subscription responses shouldn't generate ticks)
+        assertTrue(dataQueue.isEmpty(), "Subscription response should not produce market data ticks");
+
+        // Optionally verify connection status - depends on your implementation
+        assertEquals(ConnectionStatus.SUBSCRIBED, client.getStatus(),
+                "Client should be in SUBSCRIBED state after successful subscription response");
+    }
+
     @Test
     void testDuplicateSequenceNumber() throws JsonProcessingException {
         Method handleMessage = ReflectionTestUtils.getMethod(
@@ -222,7 +264,7 @@ class CoinbaseWebSocketClientTest {
     void testStatusTransitions() {
         // TODO: Some dubious use of threads for reconnection logic. Brittle/bad test.
         client.connect();
-        assertTrue(EnumSet.of(ConnectionStatus.CONNECTING, ConnectionStatus.ERROR, ConnectionStatus.SUBSCRIBING, ConnectionStatus.SUBSCRIBED)
+        assertTrue(EnumSet.of(ConnectionStatus.CONNECTING, ConnectionStatus.ERROR, ConnectionStatus.SUBSCRIBING)
                 .contains(client.getStatus()));
 
         client.disconnect();
@@ -248,7 +290,7 @@ class CoinbaseWebSocketClientTest {
             Thread.currentThread().interrupt();
         }
 
-        assertTrue(EnumSet.of(ConnectionStatus.SUBSCRIBED, ConnectionStatus.CONNECTING).contains(client.getStatus()));
+        assertTrue(EnumSet.of(ConnectionStatus.SUBSCRIBING, ConnectionStatus.CONNECTING).contains(client.getStatus()));
     }
 }
 
