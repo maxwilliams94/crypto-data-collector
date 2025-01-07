@@ -26,6 +26,6 @@ public record CryptoTick(
     }
 
     public static String headerFormat() {
-        return "%s,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%d,%.8f,%.8f";
+        return "%s,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f";
     }
 }

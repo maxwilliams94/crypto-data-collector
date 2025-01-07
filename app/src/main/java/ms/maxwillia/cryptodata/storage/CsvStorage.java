@@ -34,7 +34,9 @@ public class CsvStorage {
             tick.best_bid_quantity(),
             tick.best_ask(),
             tick.best_ask_quantity(),
-            tick.timestamp()
+            tick.timestamp(),
+            tick.nokPrice(),
+            tick.usdcRate()
         );
         writer.flush();
     }
