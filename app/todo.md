@@ -6,8 +6,8 @@
 - [X] Handling of subscription events
 
 ## Critical
-- [ ] Checking/fix saving of ticker data to file
-- [ ] Properly parse command line arguments for symbols
+- [X] Checking/fix saving of ticker data to file
+- [X] Properly parse command line arguments for symbols
 - [X] Coinbase websocket implementation
 - [ ] Coinbase websocket - testing
 - [ ] Firi REST api implementation
@@ -17,7 +17,9 @@
 - [ ] Coinbase websocket - exponential backoff on reconnection
 - [ ] ERROR state handling for Coinbase websocket
 - [ ] Allow choice of exchange to be defined at runtime
-- [ ] Allow choice of symbols to be defined at runtime
+- [X] Allow choice of symbols to be defined at runtime
+- [ ] File name for CSV storage from serial time to ISO time
 
 ## Clean-up/Refactor
 - [ ] Reconnection logic / implementation 
+- [ ] Subscription separation from websocket connection/onOpen
