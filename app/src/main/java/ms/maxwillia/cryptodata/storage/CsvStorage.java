@@ -3,6 +3,7 @@ package ms.maxwillia.cryptodata.storage;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -18,7 +19,9 @@ public class CsvStorage {
         writeHeader();
     }
 
-
+    public String getFilename() {
+        return filename;
+    }
 
     private void writeHeader() {
         writer.println(CryptoTick.header());
@@ -38,6 +41,7 @@ public class CsvStorage {
             tick.nokPrice(),
             tick.usdcRate()
         );
+        writer.println();
         writer.flush();
     }
 

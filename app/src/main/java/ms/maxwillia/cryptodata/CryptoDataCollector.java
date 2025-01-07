@@ -23,8 +23,14 @@ public class CryptoDataCollector {
 
     public CryptoDataCollector(String[] symbols) throws IOException {
         this.dataQueue = new LinkedBlockingQueue<>(1000);
-        this.storage = new CsvStorage(System.getProperty("java.io.tmpdir") + "crypto_data.csv");
 
+        String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String filename = String.format("%s%s_%s.csv",
+                System.getProperty("java.io.tmpdir"),
+                symbols[0].replace("-", "_"),
+                timestamp);
+        this.storage = new CsvStorage(filename);
+        logger.info("Using CSV file: {}", storage.getFilename());
         this.client = new CoinbaseWebSocketClient(symbols[0], dataQueue);
     }
 
