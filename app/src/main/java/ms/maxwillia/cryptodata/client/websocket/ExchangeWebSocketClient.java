@@ -1,9 +1,9 @@
-package ms.maxwillia.cryptodata.websocket;
+package ms.maxwillia.cryptodata.client.websocket;
 
+import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.model.CryptoTick;
 import java.util.concurrent.BlockingQueue;
 
-// Core interface for all exchange clients
 public interface ExchangeWebSocketClient {
     /**
      * Connect to the exchange websocket
@@ -38,7 +38,7 @@ public interface ExchangeWebSocketClient {
      * Get connection status
      * @return current status
      */
-    ConnectionStatus getStatus();
+    ClientStatus getStatus();
     
     /**
      * Reconnect to the exchange

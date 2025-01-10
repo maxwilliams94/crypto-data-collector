@@ -10,7 +10,7 @@
 - [X] Properly parse command line arguments for symbols
 - [X] Coinbase websocket implementation
 - [X] Coinbase websocket - testing
-- [ ] Create ExchangeClient and BaseExchangeClient classes to support both REST and WebSocket clients
+- [X] Create ExchangeClient and BaseExchangeClient classes to support both REST and WebSocket clients
 - [ ] Firi REST api implementation
     - [ ] Get Ticker order book
     - [ ] Convert order book to best_ask/best_bid data

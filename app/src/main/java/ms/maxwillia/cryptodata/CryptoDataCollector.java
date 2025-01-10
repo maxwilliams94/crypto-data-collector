@@ -11,13 +11,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ms.maxwillia.cryptodata.client.ExchangeClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 import ms.maxwillia.cryptodata.storage.CsvStorage;
-import ms.maxwillia.cryptodata.websocket.ExchangeWebSocketClient;
-import ms.maxwillia.cryptodata.websocket.CoinbaseWebSocketClient;
+import ms.maxwillia.cryptodata.client.websocket.CoinbaseWebSocketClient;
 
 public class CryptoDataCollector {
     private static final Logger logger = LoggerFactory.getLogger(CryptoDataCollector.class);
@@ -28,11 +28,10 @@ public class CryptoDataCollector {
     private final Map<String, BlockingQueue<CryptoTick>> dataQueues;
     private final Map<String, CsvStorage> storages;
     private final Map<String, QueueMetrics> queueMetrics;
-    private final List<ExchangeWebSocketClient> clients;
+    private final List<ExchangeClient> clients;
     private volatile boolean running = true;
     private final List<Thread> processors;
 
-    // Inner class to track queue metrics
     private static class QueueMetrics {
         private long totalReceived = 0;
         private long totalProcessed = 0;
@@ -87,8 +86,7 @@ public class CryptoDataCollector {
             logger.info("Using CSV file: {}", storage.getFilename());
             storages.put(symbol, storage);
 
-            // Create WebSocket client with just the queue
-            ExchangeWebSocketClient client = new CoinbaseWebSocketClient(symbol, queue);
+             ExchangeClient client = CoinbaseWebSocketClient.forSymbol(queue, symbol);
             clients.add(client);
         }
 
@@ -168,22 +166,12 @@ public class CryptoDataCollector {
         }
     }
 
-    public void handleTick(String symbol, CryptoTick tick) {
-        BlockingQueue<CryptoTick> queue = dataQueues.get(symbol);
-        QueueMetrics metrics = queueMetrics.get(symbol);
-        boolean accepted = queue.offer(tick);
-        metrics.recordReceived(accepted);
-
-        if (!accepted) {
-            logger.warn("{}: Queue full, dropping tick", symbol);
-        }
-    }
-
     public void start() {
-        // Start all WebSocket connections
-        for (ExchangeWebSocketClient client : clients) {
+        // Start all clients
+        for (ExchangeClient client : clients) {
             logger.info("Starting data collection for {}", client.getSubscribedSymbol());
-            client.connect();
+            client.initialize();
+            client.startDataCollection();
 
             // Create and start processor thread for this symbol
             Thread processor = new Thread(
@@ -197,12 +185,12 @@ public class CryptoDataCollector {
 
     public void stop() {
         logger.info("Stopping data collection");
-        running = false;
 
-        // Disconnect all clients
-        for (ExchangeWebSocketClient client : clients) {
-            client.disconnect();
+        for (ExchangeClient client : clients) {
+            client.stopDataCollection();
         }
+
+        running = false;
 
         // Close all storage files
         for (CsvStorage storage : storages.values()) {

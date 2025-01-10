@@ -1,8 +1,9 @@
-package ms.maxwillia.cryptodata.websocket;
+package ms.maxwillia.cryptodata.client.websocket;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import ms.maxwillia.cryptodata.client.ClientStatus;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import java.net.URI;
@@ -10,7 +11,7 @@ import java.util.concurrent.BlockingQueue;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 
-public class CoinbaseWebSocketClient extends BaseExchangeClient {
+public class CoinbaseWebSocketClient extends BaseWebSocketClient {
     private static final String COINBASE_WS_URL = "wss://advanced-trade-ws.coinbase.com";
     private final ObjectMapper objectMapper = new ObjectMapper();
     private WebSocketClient wsClient;
@@ -20,14 +21,24 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
     }
 
     @Override
+    public boolean initialize() {
+        return configure();
+    }
+
+    @Override
+    public boolean configure() {
+        return true;
+    }
+
+    @Override
     public boolean connect() {
         try {
-            setStatus(ConnectionStatus.CONNECTING);
+            setStatus(ClientStatus.STARTING);
             wsClient = createWebSocketClient();
             return wsClient.connectBlocking();
         } catch (Exception e) {
             logger.error("Error connecting to Coinbase", e);
-            setStatus(ConnectionStatus.ERROR);
+            setStatus(ClientStatus.ERROR);
             return false;
         }
     }
@@ -42,15 +53,15 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
 
             @Override
             public void onOpen(ServerHandshake handshake) {
-                setStatus(ConnectionStatus.CONNECTED);
-                //TODO Definitely shouldn't subscribe immediately onOpen - no point in a CONNECTED state
-                subscribeToSymbol();
+                // Immediately subscribe as soon as connection is established
+                subscribeToMarketData();
+                setStatus(ClientStatus.COLLECTING);
             }
 
             @Override
             public void onClose(int code, String reason, boolean remote) {
                 logger.info("Coinbase connection closed: {} (code: {})", reason, code);
-                setStatus(ConnectionStatus.DISCONNECTED);
+                setStatus(ClientStatus.STOPPED);
                 if (remote) {
                     handleReconnect();
                 }
@@ -59,7 +70,7 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
             @Override
             public void onError(Exception ex) {
                 logger.error("Coinbase WebSocket error", ex);
-                setStatus(ConnectionStatus.ERROR);
+                setStatus(ClientStatus.ERROR);
             }
         };
     }
@@ -69,7 +80,7 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
         if (wsClient != null) {
             wsClient.close();
         }
-        setStatus(ConnectionStatus.DISCONNECTED);
+        setStatus(ClientStatus.STOPPED);
     }
 
     @Override
@@ -77,7 +88,6 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
         return wsClient != null && wsClient.isOpen();
     }
 
-    @Override
     public boolean reconnect() {
         disconnect();
         return connect();
@@ -87,10 +97,12 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
     protected void handleReconnect() {
         new Thread(() -> {
             try {
-                setStatus(ConnectionStatus.RECONNECTING);
+                setStatus(ClientStatus.RECONNECTING);
                 Thread.sleep(100);
                 if (!isConnected()) {
-                    reconnect();
+                    if (!reconnect()) {
+                        setStatus(ClientStatus.ERROR);
+                    }
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -99,15 +111,20 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
     }
 
     @Override
-    protected void subscribeToSymbol() {
+    protected void initializeDataCollection() {
+
+    }
+
+    protected void subscribeToMarketData() {
         try {
-            setStatus(ConnectionStatus.SUBSCRIBING);
+            setStatus(ClientStatus.STARTING);
             ObjectNode subscribeMessage = createSubscribeMessage();
             wsClient.send(objectMapper.writeValueAsString(subscribeMessage));
             logger.info("Sent subscription request for symbol: {}", symbol);
+            setStatus(ClientStatus.COLLECTING);
         } catch (Exception e) {
             logger.error("Error subscribing to symbols", e);
-            setStatus(ConnectionStatus.ERROR);
+            setStatus(ClientStatus.ERROR);
         }
     }
 
@@ -135,7 +152,7 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
             String channel = node.get("channel").asText();
             switch (channel) {
                 case "ticker":
-                    if (getStatus() != ConnectionStatus.SUBSCRIBING) {
+                    if (getStatus() == ClientStatus.COLLECTING) {
                         processTicker(node);
                     }
                     break;
@@ -181,15 +198,15 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
                 JsonNode subscriptions = events.get(0).get("subscriptions").get("ticker");
                 if (!subscriptions.isEmpty() &&
                         subscriptions.get(0).asText().equals(symbol.toUpperCase())) {
-                    setStatus(ConnectionStatus.SUBSCRIBED);
+                    setStatus(ClientStatus.COLLECTING);
                 } else {
                     logger.error("Unexpected subscription response");
-                    setStatus(ConnectionStatus.ERROR);
+                    setStatus(ClientStatus.ERROR);
                 }
             }
         } catch (Exception e) {
             logger.error("Error processing subscription", e);
-            setStatus(ConnectionStatus.ERROR);
+            setStatus(ClientStatus.ERROR);
         }
     }
 
@@ -197,9 +214,25 @@ public class CoinbaseWebSocketClient extends BaseExchangeClient {
         return java.time.Instant.parse(timestamp).toEpochMilli();
     }
 
+
+    @Override
+    public boolean startDataCollection() {
+        return connect();
+    }
+
+    @Override
+    public void stopDataCollection() {
+        disconnect();
+    }
+
+    @Override
+    public boolean isCollecting() {
+        return getStatus() == ClientStatus.COLLECTING && isConnected();
+    }
+
     // Factory method for convenience
-    public static ExchangeWebSocketClient forSymbol(BlockingQueue<CryptoTick> dataQueue,
-                                                    String symbol) {
+    public static CoinbaseWebSocketClient forSymbol(BlockingQueue<CryptoTick> dataQueue,
+                                            String symbol) {
         return new CoinbaseWebSocketClient(symbol, dataQueue);
     }
 }

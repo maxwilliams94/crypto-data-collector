@@ -1,16 +1,16 @@
-package ms.maxwillia.cryptodata.websocket;
+package ms.maxwillia.cryptodata.client;
 
 import java.util.concurrent.BlockingQueue;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 
-// Abstract base implementation
-public abstract class BaseExchangeClient implements ExchangeWebSocketClient {
+public abstract class BaseExchangeClient implements ExchangeClient {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     protected final BlockingQueue<CryptoTick> dataQueue;
-    protected volatile ConnectionStatus status;
+    protected volatile ClientStatus status;
     protected final String exchangeName;
     protected long lastSequenceNumber = -1;
     protected String symbol;
@@ -19,7 +19,7 @@ public abstract class BaseExchangeClient implements ExchangeWebSocketClient {
         this.exchangeName = exchangeName;
         this.symbol = symbol;
         this.dataQueue = dataQueue;
-        this.status = ConnectionStatus.DISCONNECTED;
+        this.status = ClientStatus.INITIALIZED;
     }
 
     @Override
@@ -33,12 +33,12 @@ public abstract class BaseExchangeClient implements ExchangeWebSocketClient {
     }
 
     @Override
-    public ConnectionStatus getStatus() {
+    public ClientStatus getStatus() {
         return status;
     }
 
-    protected void setStatus(ConnectionStatus newStatus) {
-        ConnectionStatus oldStatus = this.status;
+    protected void setStatus(ClientStatus newStatus) {
+        ClientStatus oldStatus = this.status;
         this.status = newStatus;
         logger.info("{}: Status changed from {} to {}", exchangeName, oldStatus, newStatus);
     }
@@ -49,12 +49,13 @@ public abstract class BaseExchangeClient implements ExchangeWebSocketClient {
         }
     }
 
+    /**
+     * Handle reconnection logic for the client
+     */
     protected abstract void handleReconnect();
 
-    protected abstract void subscribeToSymbol();
-
-    public static ExchangeWebSocketClient forSymbols(BlockingQueue<CryptoTick> dataQueue, String... symbols) {
-        throw new UnsupportedOperationException("Factory method must be implemented by concrete exchange clients");
-    }
-
+    /**
+     * Initialize data collection parameters
+     */
+    protected abstract void initializeDataCollection();
 }

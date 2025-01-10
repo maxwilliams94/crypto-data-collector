@@ -1,20 +1,17 @@
-package ms.maxwillia.cryptodata.websocket;
+package ms.maxwillia.cryptodata.client.websocket;
 
-
-import static java.lang.Thread.sleep;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
-import java.util.EnumSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import ms.maxwillia.cryptodata.client.ClientStatus;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,13 +67,15 @@ class CoinbaseWebSocketClientTest {
 
     @Test
     void testInitialStatus() {
-        assertEquals(ConnectionStatus.DISCONNECTED, client.getStatus());
+        assertEquals(ClientStatus.INITIALIZED, client.getStatus());
         assertEquals("Coinbase", client.getExchangeName());
         assertEquals(TEST_SYMBOL, client.getSubscribedSymbol());
     }
 
     @Test
     void testMessageHandling() throws JsonProcessingException {
+        client.connect();
+        client.subscribeToMarketData();
         // Get test message from our test data file
         String message = objectMapper.writeValueAsString(
                 testData.get("validMessages").get("singleTicker"));
@@ -197,8 +196,7 @@ class CoinbaseWebSocketClientTest {
         JsonNode subscribeMsg = testData.get("subscriptionMessages").get("subscribe");
 
         client.connect();
-        // Trigger subscription
-        client.subscribeToSymbol();
+        client.subscribeToMarketData();
 
         // Verify the subscription message
         ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
@@ -238,7 +236,7 @@ class CoinbaseWebSocketClientTest {
         assertTrue(dataQueue.isEmpty(), "Subscription response should not produce market data ticks");
 
         // Optionally verify connection status - depends on your implementation
-        assertEquals(ConnectionStatus.SUBSCRIBED, client.getStatus(),
+        assertEquals(ClientStatus.COLLECTING, client.getStatus(),
                 "Client should be in SUBSCRIBED state after successful subscription response");
     }
 
@@ -272,11 +270,11 @@ class CoinbaseWebSocketClientTest {
 
     @Test
     void testStatusTransitions() {
-        client.connect();
-        assertEquals(ConnectionStatus.CONNECTING, client.getStatus());
+        client.startDataCollection();
+        assertEquals(ClientStatus.STARTING, client.getStatus());
 
-        client.disconnect();
-        assertEquals(ConnectionStatus.DISCONNECTED, client.getStatus());
+        client.stopDataCollection();
+        assertEquals(ClientStatus.STOPPED, client.getStatus());
     }
 
 }
