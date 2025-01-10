@@ -1,10 +1,13 @@
 package ms.maxwillia.cryptodata.client.rest;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import ms.maxwillia.cryptodata.model.CryptoTick;
+import okhttp3.*;
 
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,16 +19,27 @@ public class FiriRestClient extends BaseRestClient {
     private final String FIRI_REST_API_TICKER_URL;
     private static final String USD_SYMBOL = "USDCNOK";
     private static final long USDC_RATE_UPDATE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+    private static final int MAX_RETRIES = 3;
+    private static final long RETRY_DELAY_MS = 500; // 1 second between retries
 
     private final AtomicReference<Double> usdRate;
     private long lastRateUpdateTime;
+    private final OkHttpClient httpClient;
+    private final ObjectMapper objectMapper;
 
     public FiriRestClient(String symbol, BlockingQueue<CryptoTick> dataQueue) {
         super("Firi", symbol, dataQueue);
         this.FIRI_REST_API_ORDER_BOOK_URL = String.format("%s/markets/%s/depth", FIRI_API_BASE_URL, getExchangeSymbol());
         this.FIRI_REST_API_TICKER_URL = String.format("%s/markets/%s/ticker", FIRI_API_BASE_URL, getExchangeSymbol());
         this.usdRate = new AtomicReference<>(-1.0);
+        this.httpClient = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .build();
+        this.objectMapper = new ObjectMapper();
     }
+
 
     @Override
     public String getExchangeSymbol() {
@@ -36,7 +50,7 @@ public class FiriRestClient extends BaseRestClient {
     public boolean configure() {
         try {
             updateUsdRate();
-            return true;
+            return usdRate.get() > 0;
         } catch (Exception e) {
             logger.error("Error configuring Firi client: {}", e.getMessage());
             return false;
@@ -46,8 +60,16 @@ public class FiriRestClient extends BaseRestClient {
     @Override
     public boolean testConnection() {
         try {
-            JsonNode response = makeRequest(FIRI_REST_API_TICKER_URL);
-            return response != null && !response.isEmpty();
+            Request request = new Request.Builder()
+                    .url(FIRI_API_BASE_URL + "/markets")
+                    .build();
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    logger.error("Test connection failed with response code: {}", response.code());
+                    return false;
+                }
+                return true;
+            }
         } catch (IOException e) {
             logger.error("Failed to test Firi connection: {}", e.getMessage());
             return false;
@@ -57,26 +79,76 @@ public class FiriRestClient extends BaseRestClient {
     @Override
     public void updateUsdRate() {
         if (System.currentTimeMillis() - lastRateUpdateTime < USDC_RATE_UPDATE_INTERVAL_MS) {
-            return;
+            return; // Rate is still fresh
         }
 
-        try {
-            String usdcNokUrl = String.format("%s/markets/%s/ticker", FIRI_API_BASE_URL, USD_SYMBOL);
-            JsonNode response = makeRequest(usdcNokUrl);
-            if (response.has("last")) {
-                usdRate.set(response.get("last").asDouble());
+        String url = String.format("%s/markets/%s/ticker", FIRI_API_BASE_URL, USD_SYMBOL);
+        Request request = new Request.Builder().url(url).build();
+
+        for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    throw new IOException("Unexpected response code: " + response.code());
+                }
+
+                ResponseBody responseBody = response.body();
+                if (responseBody == null) {
+                    throw new IOException("Empty response body");
+                }
+
+                JsonNode rateData = objectMapper.readTree(responseBody.string());
+                if (!rateData.has("last")) {
+                    throw new IOException("Invalid rate data format - missing 'last' field");
+                }
+
+                double newRate = rateData.get("last").asDouble();
+                if (newRate <= 0) {
+                    throw new IOException("Invalid rate value: " + newRate);
+                }
+
+                usdRate.set(newRate);
                 lastRateUpdateTime = System.currentTimeMillis();
-                logger.debug("Updated USD/NOK rate to: {}", usdRate.get());
+                logger.debug("Successfully updated USD/NOK rate to: {}", newRate);
+                return;
+
+            } catch (IOException e) {
+                logger.warn("Failed to update USD/NOK rate (attempt {}/{}): {}",
+                        attempt, MAX_RETRIES, e.getMessage());
+
+                try {
+                    Thread.sleep(RETRY_DELAY_MS);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    logger.warn("Rate update interrupted during retry delay");
+                    return;
+                }
             }
-        } catch (Exception e) {
-            logger.error("Error updating USD/NOK rate: {}", e.getMessage());
-            throw new RuntimeException("Failed to update USD/NOK rate", e);
         }
     }
 
     @Override
     protected JsonNode fetchOrderBook() throws IOException {
-        return makeRequest(FIRI_REST_API_ORDER_BOOK_URL);
+        try (Response response = httpClient.newCall(new Request.Builder()
+                        .url(FIRI_REST_API_ORDER_BOOK_URL)
+                        .build())
+                .execute()) {
+
+            if (!response.isSuccessful()) {
+                throw new IOException("Failed to fetch order book. Response code: " + response.code());
+            }
+
+            ResponseBody responseBody = response.body();
+            if (responseBody == null) {
+                throw new IOException("Empty order book response body");
+            }
+
+            JsonNode orderBook = objectMapper.readTree(responseBody.string());
+            if (!orderBook.has("bids") || !orderBook.has("asks")) {
+                throw new IOException("Invalid order book data format");
+            }
+
+            return orderBook;
+        }
     }
 
     @Override
@@ -98,8 +170,13 @@ public class FiriRestClient extends BaseRestClient {
             JsonNode bestBid = bids.get(0);
             JsonNode bestAsk = asks.get(0);
 
+            // Validate bid/ask data
+            if (bestBid.size() < 2 || bestAsk.size() < 2) {
+                throw new IOException("Invalid bid/ask data format");
+            }
+
             // Get ticker data for last price and volume
-            JsonNode tickerData = makeRequest(FIRI_REST_API_TICKER_URL);
+            JsonNode tickerData = fetchTickerData();
 
             return new CryptoTick(
                     symbol,                           // symbol
@@ -118,8 +195,65 @@ public class FiriRestClient extends BaseRestClient {
         }
     }
 
+    private JsonNode fetchTickerData() throws IOException {
+        try (Response response = httpClient.newCall(new Request.Builder()
+                        .url(FIRI_REST_API_TICKER_URL)
+                        .build())
+                .execute()) {
+
+            if (!response.isSuccessful()) {
+                throw new IOException("Failed to fetch ticker data. Response code: " + response.code());
+            }
+
+            ResponseBody responseBody = response.body();
+            if (responseBody == null) {
+                throw new IOException("Empty ticker response body");
+            }
+
+            JsonNode tickerData = objectMapper.readTree(responseBody.string());
+            if (!tickerData.has("last") || !tickerData.has("volume")) {
+                throw new IOException("Invalid ticker data format");
+            }
+
+            return tickerData;
+        }
+    }
+
     @Override
     protected void initializeDataCollection() {
-        // Nothing specific needed here as the base class handles the core initialization
+        try {
+            updateUsdRate();
+            if (usdRate.get() <= 0) {
+                throw new RuntimeException("Invalid USD rate after initialization");
+            }
+        } catch (Exception e) {
+            logger.error("Failed to initialize data collection: {}", e.getMessage());
+            throw new RuntimeException("Data collection initialization failed", e);
+        }
+    }
+
+    @Override
+    protected void scheduleDataCollection() {
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                JsonNode orderBook = fetchOrderBook();
+                CryptoTick tick = processOrderBookData(orderBook);
+                if (tick != null) {
+                    offerTick(tick);
+                }
+            } catch (Exception e) {
+                logger.error("Error during scheduled data collection: {}", e.getMessage());
+                handleReconnect();
+            }
+        }, 0, 1, TimeUnit.SECONDS);
+
+        // Schedule regular rate updates
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                updateUsdRate();
+            } catch (Exception e) {
+                logger.error("Error during scheduled rate update: {}", e.getMessage());
+            }
+        }, USDC_RATE_UPDATE_INTERVAL_MS, USDC_RATE_UPDATE_INTERVAL_MS, TimeUnit.MILLISECONDS);
     }
 }
