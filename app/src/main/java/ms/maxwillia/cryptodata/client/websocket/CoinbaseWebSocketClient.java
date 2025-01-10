@@ -15,9 +15,25 @@ public class CoinbaseWebSocketClient extends BaseWebSocketClient {
     private static final String COINBASE_WS_URL = "wss://advanced-trade-ws.coinbase.com";
     private final ObjectMapper objectMapper = new ObjectMapper();
     private WebSocketClient wsClient;
+    private double usdRate = 1.0;
 
     public CoinbaseWebSocketClient(String symbol, BlockingQueue<CryptoTick> dataQueue) {
         super("Coinbase", symbol, dataQueue);
+    }
+
+    @Override
+    public String getExchangeSymbol() {
+        // Coinbase uses BTC-USD format
+        return symbol;
+    }
+
+    @Override
+    public void updateUsdRate() {
+        if (getSubscribedSymbol().contains("USD")) {
+            usdRate = 1.0;
+        } else {
+            // TODO: Implement
+        }
     }
 
     @Override
@@ -182,7 +198,9 @@ public class CoinbaseWebSocketClient extends BaseWebSocketClient {
                     tickerEvent.get("best_bid_quantity").asDouble(),
                     tickerEvent.get("best_ask").asDouble(),
                     tickerEvent.get("best_ask_quantity").asDouble(),
-                    parseTimestamp(timestampString)
+                    parseTimestamp(timestampString),
+                    tickerEvent.get("price").asDouble(),
+                    usdRate
             );
             offerTick(tick);
         } catch (Exception e) {

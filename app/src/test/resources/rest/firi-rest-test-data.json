@@ -1,0 +1,47 @@
+{
+  "validResponses": {
+    "orderBook": {
+      "bids": [
+        [450000.0, 1.5],
+        [449000.0, 2.0],
+        [448000.0, 3.0]
+      ],
+      "asks": [
+        [451000.0, 2.0],
+        [452000.0, 1.0],
+        [453000.0, 0.5]
+      ]
+    },
+    "ticker": {
+      "bid": "450000.00",
+      "ask": "451000.00",
+      "last": "450500.00",
+      "volume": "10.50",
+      "market": "BTCNOK"
+    },
+    "usdcRate": {
+      "bid": "10.45",
+      "ask": "10.55",
+      "last": "10.50",
+      "volume": "50000.00",
+      "market": "USDCNOK"
+    }
+  },
+  "invalidResponses": {
+    "emptyOrderBook": {
+      "bids": [],
+      "asks": []
+    },
+    "malformedOrderBook": {
+      "bids": "invalid",
+      "asks": null
+    },
+    "missingFields": {
+      "bids": [[450000.0, 1.5]]
+    },
+    "invalidPrices": {
+      "bids": [["invalid", 1.5]],
+      "asks": [[451000.0, "invalid"]]
+    }
+  }
+}
