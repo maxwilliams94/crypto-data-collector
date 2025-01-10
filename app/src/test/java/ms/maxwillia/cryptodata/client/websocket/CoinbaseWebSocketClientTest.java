@@ -86,6 +86,10 @@ class CoinbaseWebSocketClientTest {
                 "handleMessage",
                 String.class
         );
+        // Get into COLLECTING state
+        client.handleMessage(objectMapper.writeValueAsString(
+                testData.get("subscriptionMessages").get("subscribeResponse")));
+
         ReflectionTestUtils.invokeMethod(
                 client,
                 handleMessage,
@@ -112,6 +116,9 @@ class CoinbaseWebSocketClientTest {
                 "handleMessage",
                 String.class
         );
+        client.handleMessage(objectMapper.writeValueAsString(
+                testData.get("subscriptionMessages").get("subscribeResponse")));
+
         // Test wrong channel
         String wrongChannelMessage = objectMapper.writeValueAsString(
                 testData.get("invalidMessages").get("wrongChannel"));
@@ -242,6 +249,11 @@ class CoinbaseWebSocketClientTest {
 
     @Test
     void testDuplicateSequenceNumber() throws JsonProcessingException {
+        // Subscribe to symbol
+        client.startDataCollection();
+        client.handleMessage(objectMapper.writeValueAsString(
+                testData.get("subscriptionMessages").get("subscribeResponse")));
+
         Method handleMessage = ReflectionTestUtils.getMethod(
                 CoinbaseWebSocketClient.class,
                 client,
@@ -269,10 +281,14 @@ class CoinbaseWebSocketClientTest {
     }
 
     @Test
-    void testStatusTransitions() {
+    void testStatusTransitions() throws JsonProcessingException {
+        assertEquals(ClientStatus.INITIALIZED, client.getStatus());
         client.startDataCollection();
+        assertEquals(ClientStatus.INITIALIZED, client.getStatus());
+        client.subscribeToMarketData();
         assertEquals(ClientStatus.STARTING, client.getStatus());
-
+        client.handleMessage(objectMapper.writeValueAsString(testData.get("subscriptionMessages").get("subscribeResponse")));
+        assertEquals(ClientStatus.COLLECTING, client.getStatus());
         client.stopDataCollection();
         assertEquals(ClientStatus.STOPPED, client.getStatus());
     }

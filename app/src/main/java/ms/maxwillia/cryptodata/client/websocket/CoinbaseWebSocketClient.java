@@ -33,7 +33,6 @@ public class CoinbaseWebSocketClient extends BaseWebSocketClient {
     @Override
     public boolean connect() {
         try {
-            setStatus(ClientStatus.STARTING);
             wsClient = createWebSocketClient();
             return wsClient.connectBlocking();
         } catch (Exception e) {
@@ -54,8 +53,9 @@ public class CoinbaseWebSocketClient extends BaseWebSocketClient {
             @Override
             public void onOpen(ServerHandshake handshake) {
                 // Immediately subscribe as soon as connection is established
+                // Status of COLLECTING is set once subscription is successful
                 subscribeToMarketData();
-                setStatus(ClientStatus.COLLECTING);
+
             }
 
             @Override
@@ -115,17 +115,18 @@ public class CoinbaseWebSocketClient extends BaseWebSocketClient {
 
     }
 
-    protected void subscribeToMarketData() {
+    protected boolean subscribeToMarketData() {
         try {
             setStatus(ClientStatus.STARTING);
             ObjectNode subscribeMessage = createSubscribeMessage();
             wsClient.send(objectMapper.writeValueAsString(subscribeMessage));
             logger.info("Sent subscription request for symbol: {}", symbol);
-            setStatus(ClientStatus.COLLECTING);
         } catch (Exception e) {
             logger.error("Error subscribing to symbols", e);
             setStatus(ClientStatus.ERROR);
+            return false;
         }
+        return true;
     }
 
     // Package-private for testing
