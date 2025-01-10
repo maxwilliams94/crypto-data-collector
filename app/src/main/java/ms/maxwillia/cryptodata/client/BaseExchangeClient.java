@@ -17,9 +17,9 @@ public abstract class BaseExchangeClient implements ExchangeClient {
 
     protected BaseExchangeClient(String exchangeName, String symbol, BlockingQueue<CryptoTick> dataQueue) {
         this.exchangeName = exchangeName;
-        this.symbol = symbol;
         this.dataQueue = dataQueue;
         this.status = ClientStatus.INITIALIZED;
+        setSymbolFromCurrency(symbol);
     }
 
     @Override
@@ -31,6 +31,8 @@ public abstract class BaseExchangeClient implements ExchangeClient {
     public String getSubscribedSymbol() {
         return this.symbol;
     }
+
+    abstract protected void setSymbolFromCurrency(String currency);
 
     @Override
     public ClientStatus getStatus() {

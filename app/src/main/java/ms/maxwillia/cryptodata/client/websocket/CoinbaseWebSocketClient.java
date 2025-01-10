@@ -22,6 +22,11 @@ public class CoinbaseWebSocketClient extends BaseWebSocketClient {
     }
 
     @Override
+    protected void setSymbolFromCurrency(String currency) {
+        this.symbol = currency + "-USD";
+    }
+
+    @Override
     public String getExchangeSymbol() {
         // Coinbase uses BTC-USD format
         return symbol;

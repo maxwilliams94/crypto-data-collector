@@ -11,9 +11,9 @@
 - [X] Coinbase websocket implementation
 - [X] Coinbase websocket - testing
 - [X] Create ExchangeClient and BaseExchangeClient classes to support both REST and WebSocket clients
-- [ ] Firi REST api implementation
-    - [ ] Get Ticker order book
-    - [ ] Convert order book to best_ask/best_bid data
+- [X] Firi REST api implementation
+    - [x] Get Ticker order book
+    - [X] Convert order book to best_ask/best_bid data
 - [ ] Firi REST api - testing
 
 ## Features

@@ -40,6 +40,10 @@ public class FiriRestClient extends BaseRestClient {
         this.objectMapper = new ObjectMapper();
     }
 
+    @Override
+    protected void setSymbolFromCurrency(String currency) {
+        this.symbol = currency + "-NOK";
+    }
 
     @Override
     public String getExchangeSymbol() {

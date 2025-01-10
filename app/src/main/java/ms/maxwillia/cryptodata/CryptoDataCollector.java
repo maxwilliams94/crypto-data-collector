@@ -12,12 +12,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ms.maxwillia.cryptodata.client.ExchangeClient;
+import ms.maxwillia.cryptodata.client.rest.FiriRestClient;
+import ms.maxwillia.cryptodata.client.websocket.CoinbaseWebSocketClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 import ms.maxwillia.cryptodata.storage.CsvStorage;
-import ms.maxwillia.cryptodata.client.websocket.CoinbaseWebSocketClient;
 
 public class CryptoDataCollector {
     private static final Logger logger = LoggerFactory.getLogger(CryptoDataCollector.class);
@@ -69,31 +70,56 @@ public class CryptoDataCollector {
         this.clients = new ArrayList<>();
         this.processors = new ArrayList<>();
 
+        // Create all necessary components for each symbol
         for (String symbol : symbols) {
-            // Create queue and metrics
-            BlockingQueue<CryptoTick> queue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
-            dataQueues.put(symbol, queue);
-            queueMetrics.put(symbol, new QueueMetrics());
-
-            // Setup storage
-            String timestamp = java.time.LocalDateTime.now()
-                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String filename = String.format("%s%s_%s.csv",
-                    System.getProperty("java.io.tmpdir"),
-                    symbol.replace("-", "_"),
-                    timestamp);
-            CsvStorage storage = new CsvStorage(filename);
-            logger.info("Using CSV file: {}", storage.getFilename());
-            storages.put(symbol, storage);
-
-             ExchangeClient client = CoinbaseWebSocketClient.forSymbol(queue, symbol);
-            clients.add(client);
+            createExchangeClients(symbol);
         }
 
         // Start metrics reporting thread
         Thread metricsThread = new Thread(this::reportMetrics, "MetricsReporter");
         metricsThread.setDaemon(true);
         metricsThread.start();
+    }
+
+    private void createExchangeClients(String currency) throws IOException {
+        // Create Coinbase client
+        String coinbaseKey = String.format("coinbase_%s", currency);
+        createClientComponents(coinbaseKey, currency, true);
+
+        // Create Firi client
+        String firiKey = String.format("firi_%s", currency);
+        createClientComponents(firiKey, currency, false);
+    }
+
+    private void createClientComponents(String key, String currency, boolean isCoinbase) throws IOException {
+        // Create queue and metrics
+        BlockingQueue<CryptoTick> queue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+        dataQueues.put(key, queue);
+        queueMetrics.put(key, new QueueMetrics());
+
+        // Setup storage
+        String timestamp = java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String filename = String.format("%s%s_%s.csv",
+                System.getProperty("java.io.tmpdir"),
+                key,
+                timestamp);
+        CsvStorage storage = new CsvStorage(filename);
+        logger.info("Using CSV file: {}", storage.getFilename());
+        storages.put(key, storage);
+
+        // Create client
+        ExchangeClient client;
+        if (isCoinbase) {
+            String symbol = currency + "-USD";
+            client = CoinbaseWebSocketClient.forSymbol(queue, symbol);
+            logger.info("Creating Coinbase WebSocket client for {}", symbol);
+        } else {
+            String symbol = currency + "-NOK";
+            client = new FiriRestClient(symbol, queue);
+            logger.info("Creating Firi REST client for {}", symbol);
+        }
+        clients.add(client);
     }
 
 
