@@ -33,6 +33,7 @@ dependencies {
 
     // OkHttp for REST API calls
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 
     // Testing dependencies
     testImplementation(platform("org.junit:junit-bom:5.10.0"))

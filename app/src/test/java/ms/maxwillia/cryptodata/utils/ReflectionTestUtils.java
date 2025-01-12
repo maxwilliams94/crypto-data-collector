@@ -56,15 +56,15 @@ public class ReflectionTestUtils {
     }
 
     private static void makeAccessible(Field field, Object target) {
+        boolean isStatic = java.lang.reflect.Modifier.isStatic(field.getModifiers());
         if ((!java.lang.reflect.Modifier.isPublic(field.getModifiers()) ||
                 !java.lang.reflect.Modifier.isPublic(field.getDeclaringClass().getModifiers()) ||
-                java.lang.reflect.Modifier.isFinal(field.getModifiers())) && !field.canAccess(target)) {
+                java.lang.reflect.Modifier.isFinal(field.getModifiers())) && !field.canAccess(isStatic ? null : target)) {
             field.setAccessible(true);
         }
     }
 
     private static void makeAccessible(Method method, Object target) {
-        boolean isStatic = java.lang.reflect.Modifier.isStatic(method.getModifiers());
         boolean needsAccessibilityChange = (!java.lang.reflect.Modifier.isPublic(method.getModifiers()) ||
                 !java.lang.reflect.Modifier.isPublic(method.getDeclaringClass().getModifiers()));
 

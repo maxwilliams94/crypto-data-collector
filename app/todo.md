@@ -14,6 +14,7 @@
 - [X] Firi REST api implementation
     - [x] Get Ticker order book
     - [X] Convert order book to best_ask/best_bid data
+- [X] Firi REST api - unittesting
 - [ ] Firi REST api - testing
 
 ## Features
@@ -26,3 +27,5 @@
 ## Clean-up/Refactor
 - [ ] Reconnection logic / implementation 
 - [ ] Subscription separation from websocket connection/onOpen
+- [ ] Stale USD rate handling -> stop data collection
+- [ ] CoinbaseWebSocketClient - allow websocket URL to be configurable with sensible default

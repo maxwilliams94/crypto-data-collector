@@ -36,7 +36,7 @@ public abstract class BaseWebSocketClient extends BaseExchangeClient implements 
     /**
      * Subscribe to market data
      *
-     * @return
+     * @return true if successful
      */
     protected abstract boolean subscribeToMarketData();
 }

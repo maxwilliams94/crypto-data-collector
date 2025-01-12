@@ -2,55 +2,41 @@ package ms.maxwillia.cryptodata.client.rest;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.model.CryptoTick;
 import ms.maxwillia.cryptodata.utils.ReflectionTestUtils;
-import okhttp3.*;
-import okio.Timeout;
+import okhttp3.OkHttpClient;
+import okhttp3.mockwebserver.Dispatcher;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class FiriRestClientTest {
     private static final Path TEST_DATA_ROOT = Path.of("src/test/resources/rest").toAbsolutePath();
-    private static final String TEST_SYMBOL = "BTC-NOK";
+    private static final String TEST_CURRENCY = "BTC";
+    private static final String TEST_SYMBOL = "BTC-NOK"; // Not exchange specific
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private MockWebServer mockWebServer;
     private FiriRestClient client;
     private BlockingQueue<CryptoTick> dataQueue;
     private JsonNode testData;
 
-    @Mock
-    private OkHttpClient mockHttpClient;
-
-    @Mock
-    private Response mockResponse;
-
-    @Mock
-    private ResponseBody mockResponseBody;
-
     @BeforeEach
     void setUp() throws IOException {
-        dataQueue = new LinkedBlockingQueue<>();
-        client = new FiriRestClient(TEST_SYMBOL, dataQueue);
-        // Replace the HTTP client with our mock
-        ReflectionTestUtils.setField(client, "httpClient", mockHttpClient);
-
-        // Load test data
+        // Load test data first
         Path testDataFile = TEST_DATA_ROOT.resolve("firi-rest-test-data.json");
         if (!testDataFile.toFile().exists()) {
             throw new IllegalStateException(
@@ -60,110 +46,140 @@ class FiriRestClientTest {
         testData = objectMapper.readTree(testDataFile.toFile());
         assertNotNull(testData.get("validResponses"), "Missing validResponses section");
         assertNotNull(testData.get("invalidResponses"), "Missing invalidResponses section");
+
+        // Set up MockWebServer with dispatcher
+        mockWebServer = new MockWebServer();
+        mockWebServer.setDispatcher(createDispatcher());
+        mockWebServer.start();
+
+        // Create the client with mock server URL
+        dataQueue = new LinkedBlockingQueue<>();
+
+        String mockBaseUrl = mockWebServer.url("/").toString().replaceAll("/$", "");
+        client = new FiriRestClient(TEST_CURRENCY, dataQueue, mockBaseUrl);
+
+        // Use shorter timeouts for testing
+        OkHttpClient testHttpClient = new OkHttpClient.Builder()
+                .connectTimeout(1, TimeUnit.SECONDS)
+                .readTimeout(1, TimeUnit.SECONDS)
+                .writeTimeout(1, TimeUnit.SECONDS)
+                .build();
+        ReflectionTestUtils.setField(client, "httpClient", testHttpClient);
     }
 
-    private void setupMockResponse(String content) throws IOException {
-        when(mockHttpClient.newCall(any())).thenAnswer(invocation -> {
-            return new okhttp3.Call() {
-                @Override
-                public Response execute() {
-                    return mockResponse;
-                }
+    private Dispatcher createDispatcher() {
+        return new Dispatcher() {
+            @NotNull
+            @Override
+            public MockResponse dispatch(@NotNull RecordedRequest request) {
+                String path = request.getPath();
 
-                @Override
-                public void enqueue(okhttp3.Callback responseCallback) {
-                }
+                // Default error response
+                MockResponse errorResponse = new MockResponse()
+                        .setResponseCode(404)
+                        .setBody("Not found");
 
-                @Override
-                public void cancel() {
-                }
+                try {
+                    if (path == null) return errorResponse;
 
-                @Override
-                public boolean isExecuted() {
-                    return false;
-                }
+                    // Test error endpoints
+                    if (path.contains("/error")) {
+                        return new MockResponse().setResponseCode(500);
+                    }
 
-                @Override
-                public boolean isCanceled() {
-                    return false;
-                }
+                    // Test malformed data endpoints
+                    if (path.contains("/malformed") && path.contains("depth")) {
+                        return new MockResponse()
+                                .setResponseCode(200)
+                                .setHeader("Content-Type", "application/json")
+                                .setBody(testData.get("invalidResponses").get("malformedOrderBook").toString());
+                    }
 
-                @Override
-                public okhttp3.Call clone() {
-                    return this;
-                }
+                    // USDC/NOK rate endpoint
+                    if (path.contains("/USDCNOK/ticker")) {
+                        return new MockResponse()
+                                .setResponseCode(200)
+                                .setHeader("Content-Type", "application/json")
+                                .setBody(testData.get("validResponses").get("usdcRate").toString());
+                    }
 
-                @Override
-                public okhttp3.Request request() {
-                    return new okhttp3.Request.Builder()
-                            .url("https://api.firi.com/v2/markets")
-                            .build();
+                    // Order book endpoint
+                    if (path.contains("/BTCNOK/depth")) {
+                        return new MockResponse()
+                                .setResponseCode(200)
+                                .setHeader("Content-Type", "application/json")
+                                .setBody(testData.get("validResponses").get("orderBook").toString());
+                    }
+
+                    // Ticker endpoint
+                    if (path.contains("/BTCNOK/ticker")) {
+                        return new MockResponse()
+                                .setResponseCode(200)
+                                .setHeader("Content-Type", "application/json")
+                                .setBody(testData.get("validResponses").get("ticker").toString());
+                    }
+                    // Markets endpoint
+                    if (path.endsWith("/markets")) {
+                        return new MockResponse()
+                                .setResponseCode(200)
+                                .setHeader("Content-Type", "application/json")
+                                .setBody(testData.get("validResponses").get("markets").toString());
+                    }
+
+                    return errorResponse;
+                } catch (Exception e) {
+                    return new MockResponse()
+                            .setResponseCode(500)
+                            .setBody("Error processing request: " + e.getMessage());
                 }
-                @NotNull
-                @Override
-                public Timeout timeout() {
-                    return Timeout.NONE;
-                }
-            };
-        });
+            }
+        };
     }
 
-    private JsonNode createMockOrderBookData(double bestBidPrice, double bestBidQty,
-                                             double bestAskPrice, double bestAskQty) {
-        ObjectNode orderBook = objectMapper.createObjectNode();
-        ArrayNode bids = orderBook.putArray("bids");
-        ArrayNode bid = objectMapper.createArrayNode();
-        bid.add(bestBidPrice);
-        bid.add(bestBidQty);
-        bids.add(bid);
-
-        ArrayNode asks = orderBook.putArray("asks");
-        ArrayNode ask = objectMapper.createArrayNode();
-        ask.add(bestAskPrice);
-        ask.add(bestAskQty);
-        asks.add(ask);
-
-        return orderBook;
-    }
-
-    private JsonNode createMockTickerData(double last, double volume) {
-        ObjectNode ticker = objectMapper.createObjectNode();
-        ticker.put("last", last);
-        ticker.put("volume", volume);
-        return ticker;
-    }
-
-    private JsonNode createMockUsdcNokData(double rate) {
-        ObjectNode ticker = objectMapper.createObjectNode();
-        ticker.put("last", rate);
-        return ticker;
+    @AfterEach
+    void tearDown() throws IOException {
+        mockWebServer.shutdown();
+        if (client != null) {
+            client.stopDataCollection();
+        }
     }
 
     @Test
-    void testInitialization() {
-        assertEquals("Firi", client.getExchangeName());
-        assertEquals(TEST_SYMBOL, client.getSubscribedSymbol());
-        assertEquals("BTCNOK", client.getExchangeSymbol());
-        assertEquals(ClientStatus.INITIALIZED, client.getStatus());
-    }
+    void testSuccessfulDataCollection() throws Exception {
+        // Initialize and start the client
+        assertTrue(client.initialize());
+        assertTrue(client.startDataCollection());
+        assertEquals(ClientStatus.COLLECTING, client.getStatus());
 
-    @Test
-    void testHandleInvalidOrderBookData() {
-        ObjectNode invalidData = objectMapper.createObjectNode();
-        invalidData.put("someField", "someValue");
+        // Wait for data collection
+        Thread.sleep(1500); // Wait for at least one polling cycle
 
-        assertThrows(IOException.class, () -> {
-            client.processOrderBookData(invalidData);
-        });
+        // Get expected values from test data
+        JsonNode validData = testData.get("validResponses");
+        double expectedUsdRate = validData.get("usdcRate").get("last").asDouble();
+        double expectedPrice = validData.get("ticker").get("last").asDouble();
+        double expectedVolume = validData.get("ticker").get("volume").asDouble();
+        double expectedBestBid = validData.get("orderBook").get("bids").get(0).get(0).asDouble();
+        double expectedBestBidQty = validData.get("orderBook").get("bids").get(0).get(1).asDouble();
+        double expectedBestAsk = validData.get("orderBook").get("asks").get(0).get(0).asDouble();
+        double expectedBestAskQty = validData.get("orderBook").get("asks").get(0).get(1).asDouble();
+
+        // Verify we received market data
+        CryptoTick tick = dataQueue.poll(1, TimeUnit.SECONDS);
+        assertNotNull(tick);
+        assertEquals(TEST_SYMBOL, tick.symbol());
+        assertEquals(expectedPrice / expectedUsdRate, tick.price(), 0.0001); // Price in USD
+        assertEquals(expectedVolume, tick.volume_24_h());
+        assertEquals(expectedBestBid, tick.best_bid());
+        assertEquals(expectedBestBidQty, tick.best_bid_quantity());
+        assertEquals(expectedBestAsk, tick.best_ask());
+        assertEquals(expectedBestAskQty, tick.best_ask_quantity());
     }
 
     @Test
     void testStopDataCollection() throws Exception {
-        setupMockResponse(createMockOrderBookData(450000.0, 1.5,
-                451000.0, 2.0).toString());
-
-        client.initialize();
-        client.startDataCollection();
+        assertTrue(client.initialize());
+        assertTrue(client.startDataCollection());
         assertEquals(ClientStatus.COLLECTING, client.getStatus());
 
         Thread.sleep(100); // Let it run briefly
@@ -174,17 +190,28 @@ class FiriRestClientTest {
     }
 
     @Test
-    void testReconnectOnError() throws IOException {
-        // First request fails
-        when(mockResponse.isSuccessful()).thenReturn(false);
-        setupMockResponse("{}");
+    void testHandleServerError() throws Exception {
+        // Override baseUrl to hit error endpoint
+        String errorBaseUrl = mockWebServer.url("/error").toString().replaceAll("/$", "");
+        client = new FiriRestClient(TEST_CURRENCY, dataQueue, errorBaseUrl);
 
-        client.initialize();
-        client.startDataCollection();
+        assertFalse(client.initialize());
+        assertEquals(ClientStatus.ERROR, client.getStatus());
+    }
 
-        // Verify it goes into reconnecting state
-        verify(mockHttpClient, atLeastOnce()).newCall(any());
-        assertEquals(ClientStatus.RECONNECTING, client.getStatus());
+    @Test
+    void testHandleMalformedData() throws Exception {
+        // Override baseUrl to hit malformed data endpoint
+        String malformedBaseUrl = mockWebServer.url("/malformed").toString().replaceAll("/$", "");
+        client = new FiriRestClient(TEST_CURRENCY, dataQueue, malformedBaseUrl);
 
+        assertTrue(client.initialize());
+        assertTrue(client.startDataCollection());
+
+        // Wait for data collection attempt
+        Thread.sleep(1500);
+
+        // Verify no data was added to queue due to malformed data
+        assertNull(dataQueue.poll());
     }
 }

@@ -3,6 +3,7 @@ package ms.maxwillia.cryptodata.client.rest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ms.maxwillia.cryptodata.model.CryptoTick;
+import ms.maxwillia.cryptodata.client.ClientStatus;
 import okhttp3.*;
 
 import java.io.IOException;
@@ -12,13 +13,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 public class FiriRestClient extends BaseRestClient {
     private static final Logger logger = LoggerFactory.getLogger(FiriRestClient.class);
-    private static final String FIRI_API_BASE_URL = "https://api.firi.com/v2";
+    private static final String DEFAULT_FIRI_API_BASE_URL = "https://api.firi.com/v2";
+    private final String baseUrl;
     private final String FIRI_REST_API_ORDER_BOOK_URL;
     private final String FIRI_REST_API_TICKER_URL;
     private static final String USD_SYMBOL = "USDCNOK";
     private static final long USDC_RATE_UPDATE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+    protected static final long USD_MAX_STALE_MS = 30 * 60 * 1000; // 30 minutes
     private static final int MAX_RETRIES = 3;
     private static final long RETRY_DELAY_MS = 500; // 1 second between retries
 
@@ -28,9 +32,14 @@ public class FiriRestClient extends BaseRestClient {
     private final ObjectMapper objectMapper;
 
     public FiriRestClient(String symbol, BlockingQueue<CryptoTick> dataQueue) {
+        this(symbol, dataQueue, DEFAULT_FIRI_API_BASE_URL);
+    }
+
+    public FiriRestClient(String symbol, BlockingQueue<CryptoTick> dataQueue, String baseUrl) {
         super("Firi", symbol, dataQueue);
-        this.FIRI_REST_API_ORDER_BOOK_URL = String.format("%s/markets/%s/depth", FIRI_API_BASE_URL, getExchangeSymbol());
-        this.FIRI_REST_API_TICKER_URL = String.format("%s/markets/%s/ticker", FIRI_API_BASE_URL, getExchangeSymbol());
+        this.baseUrl = baseUrl;
+        this.FIRI_REST_API_ORDER_BOOK_URL = String.format("%s/markets/%s/depth", baseUrl, getExchangeSymbol());
+        this.FIRI_REST_API_TICKER_URL = String.format("%s/markets/%s/ticker", baseUrl, getExchangeSymbol());
         this.usdRate = new AtomicReference<>(-1.0);
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
@@ -57,6 +66,7 @@ public class FiriRestClient extends BaseRestClient {
             return usdRate.get() > 0;
         } catch (Exception e) {
             logger.error("Error configuring Firi client: {}", e.getMessage());
+            setStatus(ClientStatus.ERROR);
             return false;
         }
     }
@@ -65,7 +75,7 @@ public class FiriRestClient extends BaseRestClient {
     public boolean testConnection() {
         try {
             Request request = new Request.Builder()
-                    .url(FIRI_API_BASE_URL + "/markets")
+                    .url(baseUrl + "/markets")
                     .build();
             try (Response response = httpClient.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
@@ -86,7 +96,7 @@ public class FiriRestClient extends BaseRestClient {
             return; // Rate is still fresh
         }
 
-        String url = String.format("%s/markets/%s/ticker", FIRI_API_BASE_URL, USD_SYMBOL);
+        String url = String.format("%s/markets/%s/ticker", baseUrl, USD_SYMBOL);
         Request request = new Request.Builder().url(url).build();
 
         for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -127,6 +137,11 @@ public class FiriRestClient extends BaseRestClient {
                     return;
                 }
             }
+        }
+        if (System.currentTimeMillis() - lastRateUpdateTime > USD_MAX_STALE_MS) {
+            logger.warn("USD rate is too stale.");
+            stopDataCollection();
+            setStatus(ClientStatus.ERROR);
         }
     }
 
@@ -183,7 +198,7 @@ public class FiriRestClient extends BaseRestClient {
             JsonNode tickerData = fetchTickerData();
 
             return new CryptoTick(
-                    symbol,                           // symbol
+                    symbol,              // symbol
                     tickerData.get("volume").asDouble(), // volume_24h
                     bestBid.get(0).asDouble(),       // best_bid
                     bestBid.get(1).asDouble(),       // best_bid_quantity
@@ -238,18 +253,7 @@ public class FiriRestClient extends BaseRestClient {
 
     @Override
     protected void scheduleDataCollection() {
-        scheduler.scheduleAtFixedRate(() -> {
-            try {
-                JsonNode orderBook = fetchOrderBook();
-                CryptoTick tick = processOrderBookData(orderBook);
-                if (tick != null) {
-                    offerTick(tick);
-                }
-            } catch (Exception e) {
-                logger.error("Error during scheduled data collection: {}", e.getMessage());
-                handleReconnect();
-            }
-        }, 0, 1, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::pollMarketData, 0, 1, TimeUnit.SECONDS);
 
         // Schedule regular rate updates
         scheduler.scheduleAtFixedRate(() -> {

@@ -25,7 +25,8 @@
       "last": "10.50",
       "volume": "50000.00",
       "market": "USDCNOK"
-    }
+    },
+    "markets": [{"id":"DOTNOK","last":"78.06","high":"78.06","change":"0.72","low":"77.63","volume":"501.87","closing_volume":"501.28","todays_volume":"0.58"}]
   },
   "invalidResponses": {
     "emptyOrderBook": {

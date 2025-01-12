@@ -20,6 +20,7 @@ public abstract class BaseExchangeClient implements ExchangeClient {
         this.dataQueue = dataQueue;
         this.status = ClientStatus.INITIALIZED;
         setSymbolFromCurrency(symbol);
+        logger.info("Created client for {} with symbol: {}", exchangeName, symbol);
     }
 
     @Override

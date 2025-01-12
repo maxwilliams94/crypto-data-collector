@@ -136,7 +136,7 @@ public abstract class BaseRestClient extends BaseExchangeClient implements RestC
     protected void handleReconnect() {
         setStatus(ClientStatus.RECONNECTING);
         try {
-            Thread.sleep(5000); // Wait 5 seconds before trying to reconnect
+            Thread.sleep(1000); // Wait 5 seconds before trying to reconnect
             if (testConnection()) {
                 setStatus(ClientStatus.COLLECTING);
             } else {

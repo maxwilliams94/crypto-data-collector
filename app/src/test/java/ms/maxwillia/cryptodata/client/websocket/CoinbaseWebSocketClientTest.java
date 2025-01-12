@@ -33,6 +33,7 @@ class CoinbaseWebSocketClientTest {
     private CoinbaseWebSocketClient client;
     private BlockingQueue<CryptoTick> dataQueue;
     private static final String TEST_SYMBOL = "BTC-USD";
+    private static final String TEST_CURRENCY = "BTC";
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private JsonNode testData;
 
@@ -45,7 +46,7 @@ class CoinbaseWebSocketClientTest {
     @BeforeEach
     void setUp() throws IOException {
         dataQueue = new LinkedBlockingQueue<>();
-        client = new CoinbaseWebSocketClient(TEST_SYMBOL, dataQueue) {
+        client = new CoinbaseWebSocketClient(TEST_CURRENCY, dataQueue) {
             @Override
             protected WebSocketClient createWebSocketClient() {
                 return mockWebSocketClient;
