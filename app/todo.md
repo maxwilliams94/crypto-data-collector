@@ -15,14 +15,19 @@
     - [x] Get Ticker order book
     - [X] Convert order book to best_ask/best_bid data
 - [X] Firi REST api - unittesting
-- [ ] Firi REST api - testing
+- [X] Firi REST api - testing
+- [ ] Better price logging
+- [ ] Testing/Design for making orders
+- [ ] Coinbase Authentication
+- [ ] Firi Authentication
+- [ ] Design for detecting arbitrage opportunies
 
 ## Features
 - [ ] Allow choice of exchange(s) to be defined at runtime
 - [ ] Coinbase websocket - exponential backoff on reconnection
 - [ ] ERROR state handling for Coinbase websocket
 - [X] Allow choice of symbols to be defined at runtime
-- [ ] File name for CSV storage from serial time to ISO time
+- [X] File name for CSV storage from serial time to ISO time
 
 ## Clean-up/Refactor
 - [ ] Reconnection logic / implementation 
