@@ -14,13 +14,19 @@ public abstract class BaseExchangeClient implements ExchangeClient {
     protected final String exchangeName;
     protected long lastSequenceNumber = -1;
     protected String symbol;
+    protected String currency;
 
-    protected BaseExchangeClient(String exchangeName, String symbol, BlockingQueue<CryptoTick> dataQueue) {
+    protected BaseExchangeClient(String exchangeName, String currency, BlockingQueue<CryptoTick> dataQueue) {
+        this.currency = currency;
         this.exchangeName = exchangeName;
         this.dataQueue = dataQueue;
         this.status = ClientStatus.INITIALIZED;
-        setSymbolFromCurrency(symbol);
-        logger.info("Created client for {} with symbol: {}", exchangeName, symbol);
+        setSymbolFromCurrency(currency);
+        logger.info("Created client for {} with symbol: {}", exchangeName, currency);
+    }
+
+    public String toString() {
+        return String.format("%s: %s", exchangeName, getSubscribedSymbol());
     }
 
     @Override
@@ -31,6 +37,11 @@ public abstract class BaseExchangeClient implements ExchangeClient {
     @Override
     public String getSubscribedSymbol() {
         return this.symbol;
+    }
+
+    @Override
+    public String getCurrency() {
+        return this.currency;
     }
 
     abstract protected void setSymbolFromCurrency(String currency);

@@ -1,48 +1,105 @@
 {
   "validResponses": {
-    "orderBook": {
+    "BTCNOK": {
+    "depth": {
       "bids": [
-        [450000.0, 1.5],
-        [449000.0, 2.0],
-        [448000.0, 3.0]
+        [
+          450000.0,
+          1.5
+        ],
+        [
+          449000.0,
+          2.0
+        ],
+        [
+          448000.0,
+          3.0
+        ]
       ],
       "asks": [
-        [451000.0, 2.0],
-        [452000.0, 1.0],
-        [453000.0, 0.5]
+        [
+          451000.0,
+          2.0
+        ],
+        [
+          452000.0,
+          1.0
+        ],
+        [
+          453000.0,
+          0.5
+        ]
       ]
     },
+      "/": {
+        "last": "1087211.42",
+        "high": "1100000.00",
+        "change": "-0.65",
+        "low": "1029084.98",
+        "volume": "12.76"
+      },
     "ticker": {
-      "bid": "450000.00",
-      "ask": "451000.00",
-      "last": "450500.00",
-      "volume": "10.50",
-      "market": "BTCNOK"
+      "bid": "1070725.5300000000000000",
+      "ask": "1087208.0500000000000000",
+      "spread": "16482.5200000000000000"
+    }},
+    "USDCNOK": {
+    "/": {
+      "last": "11.47",
+      "high": "0",
+      "change": "0",
+      "low": "0",
+      "volume": "0"
+    }
     },
-    "usdcRate": {
-      "bid": "10.45",
-      "ask": "10.55",
-      "last": "10.50",
-      "volume": "50000.00",
-      "market": "USDCNOK"
-    },
-    "markets": [{"id":"DOTNOK","last":"78.06","high":"78.06","change":"0.72","low":"77.63","volume":"501.87","closing_volume":"501.28","todays_volume":"0.58"}]
+    "markets": [
+      {
+        "id": "DOTNOK",
+        "last": "78.06",
+        "high": "78.06",
+        "change": "0.72",
+        "low": "77.63",
+        "volume": "501.87",
+        "closing_volume": "501.28",
+        "todays_volume": "0.58"
+      }
+    ]
   },
   "invalidResponses": {
-    "emptyOrderBook": {
+    "emptydepth": {
       "bids": [],
       "asks": []
     },
-    "malformedOrderBook": {
-      "bids": "invalid",
-      "asks": null
+    "malformed" : {
+      "depth": {
+        "bids": "invalid",
+        "asks": null
+      }
     },
     "missingFields": {
-      "bids": [[450000.0, 1.5]]
-    },
+      "depth": {
+      "bids": [
+        [
+          450000.0,
+          1.5
+        ]
+      ]
+    }},
     "invalidPrices": {
-      "bids": [["invalid", 1.5]],
-      "asks": [[451000.0, "invalid"]]
+      "depth": {
+        "bids": [
+          [
+            "invalid",
+            1.5
+          ]
+        ],
+        "asks": [
+          [
+            451000.0,
+            "invalid"
+          ]
+        ]
+      }
     }
   }
 }

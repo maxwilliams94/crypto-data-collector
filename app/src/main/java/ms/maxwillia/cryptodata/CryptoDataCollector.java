@@ -1,16 +1,14 @@
 package ms.maxwillia.cryptodata;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ms.maxwillia.cryptodata.client.BaseExchangeClient;
 import ms.maxwillia.cryptodata.client.ExchangeClient;
 import ms.maxwillia.cryptodata.client.rest.FiriRestClient;
 import ms.maxwillia.cryptodata.client.websocket.CoinbaseWebSocketClient;
@@ -71,9 +69,7 @@ public class CryptoDataCollector {
         this.processors = new ArrayList<>();
 
         // Create all necessary components for each symbol
-        for (String symbol : symbols) {
-            createExchangeClients(symbol);
-        }
+        createExchangeClientsAndComponents(symbols);
 
         // Start metrics reporting thread
         Thread metricsThread = new Thread(this::reportMetrics, "MetricsReporter");
@@ -81,45 +77,43 @@ public class CryptoDataCollector {
         metricsThread.start();
     }
 
-    private void createExchangeClients(String currency) throws IOException {
-        // Create Coinbase client
-        String coinbaseKey = String.format("coinbase_%s", currency);
-        createClientComponents(coinbaseKey, currency, true);
-
-        // Create Firi client
-        String firiKey = String.format("firi_%s", currency);
-        createClientComponents(firiKey, currency, false);
+    static String generateKey(String exchange, String currency) {
+        return String.format("%s_%s", exchange, currency);
     }
 
-    private void createClientComponents(String key, String currency, boolean isCoinbase) throws IOException {
-        // Create queue and metrics
-        BlockingQueue<CryptoTick> queue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
-        dataQueues.put(key, queue);
-        queueMetrics.put(key, new QueueMetrics());
+    private void createExchangeClientsAndComponents(String[] currencies) throws IOException {
+        BaseExchangeClient client;
+        String key;
+        for (String currency : currencies) {
+            for (String exchange : Arrays.asList("Coinbase", "Firi")) {
+                key = generateKey(exchange, currency);
+                LinkedBlockingQueue<CryptoTick> queue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+                dataQueues.put(key, queue);
+                queueMetrics.put(key, new QueueMetrics());
 
-        // Setup storage
-        String timestamp = java.time.LocalDateTime.now()
-                .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String filename = String.format("%s%s_%s.csv",
-                System.getProperty("java.io.tmpdir"),
-                key,
-                timestamp);
-        CsvStorage storage = new CsvStorage(filename);
-        logger.info("Using CSV file: {}", storage.getFilename());
-        storages.put(key, storage);
+                // Setup storage
+                String timestamp = java.time.LocalDateTime.now()
+                        .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+                String filename = String.format("%s%s_%s.csv",
+                        System.getProperty("java.io.tmpdir"),
+                        key,
+                        timestamp);
+                CsvStorage storage = new CsvStorage(filename);
+                logger.info("Using CSV file: {}", storage.getFilename());
+                storages.put(key, storage);
 
-        // Create client
-        ExchangeClient client;
-        if (isCoinbase) {
-            String symbol = currency + "-USD";
-            client = CoinbaseWebSocketClient.forSymbol(queue, symbol);
-            logger.info("Creating Coinbase WebSocket client for {}", symbol);
-        } else {
-            String symbol = currency + "-NOK";
-            client = new FiriRestClient(symbol, queue);
-            logger.info("Creating Firi REST client for {}", symbol);
+                // Create client
+                if (exchange.equals("Coinbase")) {
+                    client = new CoinbaseWebSocketClient(currency, queue);
+                } else if (exchange.equals("Firi")) {
+                    client = new FiriRestClient(currency, queue);
+                } else {
+                    throw new IllegalArgumentException("Unknown exchange: " + exchange);
+                }
+                clients.add(client);
+            }
         }
-        clients.add(client);
+
     }
 
 
@@ -195,15 +189,14 @@ public class CryptoDataCollector {
     public void start() {
         // Start all clients
         for (ExchangeClient client : clients) {
-            logger.info("Starting data collection for {}", client.getSubscribedSymbol());
+            logger.info("Starting data collection for {}", client.toString());
             client.initialize();
             client.startDataCollection();
 
             // Create and start processor thread for this symbol
             Thread processor = new Thread(
-                    () -> processData(client.getSubscribedSymbol()),
-                    "DataProcessor-" + client.getSubscribedSymbol()
-            );
+                    () -> processData(generateKey(client.getExchangeName(), client.getCurrency())),
+                    "DataProcessor-%s-%s".formatted(client.getExchangeName(), client.getSubscribedSymbol()));
             processors.add(processor);
             processor.start();
         }

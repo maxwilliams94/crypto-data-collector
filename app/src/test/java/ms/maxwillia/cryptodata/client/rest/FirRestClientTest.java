@@ -14,7 +14,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -92,15 +91,15 @@ class FiriRestClientTest {
                         return new MockResponse()
                                 .setResponseCode(200)
                                 .setHeader("Content-Type", "application/json")
-                                .setBody(testData.get("invalidResponses").get("malformedOrderBook").toString());
+                                .setBody(testData.get("invalidResponses").get("malformed").get("depth").toString());
                     }
 
                     // USDC/NOK rate endpoint
-                    if (path.contains("/USDCNOK/ticker")) {
+                    if (path.contains("markets/USDCNOK")) {
                         return new MockResponse()
                                 .setResponseCode(200)
                                 .setHeader("Content-Type", "application/json")
-                                .setBody(testData.get("validResponses").get("usdcRate").toString());
+                                .setBody(testData.get("validResponses").get("USDCNOK").get("/").toString());
                     }
 
                     // Order book endpoint
@@ -108,15 +107,15 @@ class FiriRestClientTest {
                         return new MockResponse()
                                 .setResponseCode(200)
                                 .setHeader("Content-Type", "application/json")
-                                .setBody(testData.get("validResponses").get("orderBook").toString());
+                                .setBody(testData.get("validResponses").get("BTCNOK").get("depth").toString());
                     }
 
-                    // Ticker endpoint
-                    if (path.contains("/BTCNOK/ticker")) {
+                    // markets/BTCNOK endpoint
+                    if (path.endsWith("/markets/BTCNOK")) {
                         return new MockResponse()
                                 .setResponseCode(200)
                                 .setHeader("Content-Type", "application/json")
-                                .setBody(testData.get("validResponses").get("ticker").toString());
+                                .setBody(testData.get("validResponses").get("BTCNOK").get("/").toString());
                     }
                     // Markets endpoint
                     if (path.endsWith("/markets")) {
@@ -156,13 +155,13 @@ class FiriRestClientTest {
 
         // Get expected values from test data
         JsonNode validData = testData.get("validResponses");
-        double expectedUsdRate = validData.get("usdcRate").get("last").asDouble();
-        double expectedPrice = validData.get("ticker").get("last").asDouble();
-        double expectedVolume = validData.get("ticker").get("volume").asDouble();
-        double expectedBestBid = validData.get("orderBook").get("bids").get(0).get(0).asDouble();
-        double expectedBestBidQty = validData.get("orderBook").get("bids").get(0).get(1).asDouble();
-        double expectedBestAsk = validData.get("orderBook").get("asks").get(0).get(0).asDouble();
-        double expectedBestAskQty = validData.get("orderBook").get("asks").get(0).get(1).asDouble();
+        double expectedUsdRate = validData.get("USDCNOK").get("/").get("last").asDouble();
+        double expectedPrice = validData.get("BTCNOK").get("/").get("last").asDouble();
+        double expectedVolume = validData.get("BTCNOK").get("/").get("volume").asDouble();
+        double expectedBestBid = validData.get("BTCNOK").get("depth").get("bids").get(0).get(0).asDouble();
+        double expectedBestBidQty = validData.get("BTCNOK").get("depth").get("bids").get(0).get(1).asDouble();
+        double expectedBestAsk = validData.get("BTCNOK").get("depth").get("asks").get(0).get(0).asDouble();
+        double expectedBestAskQty = validData.get("BTCNOK").get("depth").get("asks").get(0).get(1).asDouble();
 
         // Verify we received market data
         CryptoTick tick = dataQueue.poll(1, TimeUnit.SECONDS);

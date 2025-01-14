@@ -5,6 +5,13 @@ package ms.maxwillia.cryptodata.client;
  * Core interface for all exchange clients (WebSocket, REST, etc.)
  */
 public interface ExchangeClient {
+
+    /**
+     * Get a string representation of the client
+     * @return string representation
+     */
+    String toString();
+
     /**
      * Initialize the client connection
      * @return true if initialization was successful
@@ -39,6 +46,12 @@ public interface ExchangeClient {
      * @return symbol
      */
     String getSubscribedSymbol();
+
+    /**
+     * Get the currency symbol (standard format)
+     * @return currency
+     */
+    String getCurrency();
 
     /**
      * Get the subscribed symbol (format for the exchange)

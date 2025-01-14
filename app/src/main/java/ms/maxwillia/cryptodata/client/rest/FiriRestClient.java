@@ -19,7 +19,7 @@ public class FiriRestClient extends BaseRestClient {
     private static final String DEFAULT_FIRI_API_BASE_URL = "https://api.firi.com/v2";
     private final String baseUrl;
     private final String FIRI_REST_API_ORDER_BOOK_URL;
-    private final String FIRI_REST_API_TICKER_URL;
+    private final String FIRI_REST_API_MARKET_URL;
     private static final String USD_SYMBOL = "USDCNOK";
     private static final long USDC_RATE_UPDATE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
     protected static final long USD_MAX_STALE_MS = 30 * 60 * 1000; // 30 minutes
@@ -39,7 +39,7 @@ public class FiriRestClient extends BaseRestClient {
         super("Firi", symbol, dataQueue);
         this.baseUrl = baseUrl;
         this.FIRI_REST_API_ORDER_BOOK_URL = String.format("%s/markets/%s/depth", baseUrl, getExchangeSymbol());
-        this.FIRI_REST_API_TICKER_URL = String.format("%s/markets/%s/ticker", baseUrl, getExchangeSymbol());
+        this.FIRI_REST_API_MARKET_URL = String.format("%s/markets/%s", baseUrl, getExchangeSymbol());
         this.usdRate = new AtomicReference<>(-1.0);
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
@@ -96,7 +96,7 @@ public class FiriRestClient extends BaseRestClient {
             return; // Rate is still fresh
         }
 
-        String url = String.format("%s/markets/%s/ticker", baseUrl, USD_SYMBOL);
+        String url = String.format("%s/markets/%s", baseUrl, USD_SYMBOL);
         Request request = new Request.Builder().url(url).build();
 
         for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -195,7 +195,7 @@ public class FiriRestClient extends BaseRestClient {
             }
 
             // Get ticker data for last price and volume
-            JsonNode tickerData = fetchTickerData();
+            JsonNode tickerData = fetchPriceData();
 
             return new CryptoTick(
                     symbol,              // symbol
@@ -214,9 +214,9 @@ public class FiriRestClient extends BaseRestClient {
         }
     }
 
-    private JsonNode fetchTickerData() throws IOException {
+    private JsonNode fetchPriceData() throws IOException {
         try (Response response = httpClient.newCall(new Request.Builder()
-                        .url(FIRI_REST_API_TICKER_URL)
+                        .url(FIRI_REST_API_MARKET_URL)
                         .build())
                 .execute()) {
 

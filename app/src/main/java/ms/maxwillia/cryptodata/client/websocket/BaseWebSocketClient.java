@@ -10,8 +10,8 @@ import java.util.concurrent.BlockingQueue;
  * Base implementation for WebSocket clients
  */
 public abstract class BaseWebSocketClient extends BaseExchangeClient implements WebSocketClient {
-    protected BaseWebSocketClient(String exchangeName, String symbol, BlockingQueue<CryptoTick> dataQueue) {
-        super(exchangeName, symbol, dataQueue);
+    protected BaseWebSocketClient(String exchangeName, String currency, BlockingQueue<CryptoTick> dataQueue) {
+        super(exchangeName, currency, dataQueue);
     }
 
     @Override

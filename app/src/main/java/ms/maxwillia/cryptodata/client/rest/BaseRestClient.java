@@ -26,8 +26,8 @@ public abstract class BaseRestClient extends BaseExchangeClient implements RestC
     protected long pollingIntervalMs;
     protected static final long DEFAULT_POLLING_INTERVAL_MS = 1000; // 1 second default
 
-    protected BaseRestClient(String exchangeName, String symbol, BlockingQueue<CryptoTick> dataQueue) {
-        super(exchangeName, symbol, dataQueue);
+    protected BaseRestClient(String exchangeName, String currency, BlockingQueue<CryptoTick> dataQueue) {
+        super(exchangeName, currency, dataQueue);
         this.scheduler = Executors.newScheduledThreadPool(2);
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
