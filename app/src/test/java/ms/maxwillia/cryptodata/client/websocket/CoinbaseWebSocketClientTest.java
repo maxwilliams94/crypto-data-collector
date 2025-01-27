@@ -30,7 +30,7 @@ import ms.maxwillia.cryptodata.utils.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 class CoinbaseWebSocketClientTest {
     private static final Path TEST_DATA_ROOT = Path.of("src/test/resources/websocket").toAbsolutePath();
-    private CoinbaseWebSocketClient client;
+    private CoinbaseWebSocketCollector client;
     private BlockingQueue<CryptoTick> dataQueue;
     private static final String TEST_SYMBOL = "BTC-USD";
     private static final String TEST_CURRENCY = "BTC";
@@ -46,7 +46,7 @@ class CoinbaseWebSocketClientTest {
     @BeforeEach
     void setUp() throws IOException {
         dataQueue = new LinkedBlockingQueue<>();
-        client = new CoinbaseWebSocketClient(TEST_CURRENCY, dataQueue) {
+        client = new CoinbaseWebSocketCollector(TEST_CURRENCY, dataQueue) {
             @Override
             protected WebSocketClient createWebSocketClient() {
                 return mockWebSocketClient;
@@ -82,7 +82,7 @@ class CoinbaseWebSocketClientTest {
                 testData.get("validMessages").get("singleTicker"));
 
         Method handleMessage = ReflectionTestUtils.getMethod(
-                CoinbaseWebSocketClient.class,
+                CoinbaseWebSocketCollector.class,
                 client,
                 "handleMessage",
                 String.class
@@ -112,7 +112,7 @@ class CoinbaseWebSocketClientTest {
     @Test
     void testInvalidMessages() throws JsonProcessingException {
         Method handleMessage = ReflectionTestUtils.getMethod(
-                CoinbaseWebSocketClient.class,
+                CoinbaseWebSocketCollector.class,
                 client,
                 "handleMessage",
                 String.class
@@ -154,7 +154,7 @@ class CoinbaseWebSocketClientTest {
     @Test
     void testSequentialMessages() throws JsonProcessingException {
         Method handleMessage = ReflectionTestUtils.getMethod(
-                CoinbaseWebSocketClient.class,
+                CoinbaseWebSocketCollector.class,
                 client,
                 "handleMessage",
                 String.class
@@ -224,7 +224,7 @@ class CoinbaseWebSocketClientTest {
     void testHandleSuccessfulSubscribe() throws JsonProcessingException {
         client.connect();
         Method handleMessage = ReflectionTestUtils.getMethod(
-                CoinbaseWebSocketClient.class,
+                CoinbaseWebSocketCollector.class,
                 client,
                 "handleMessage",
                 String.class
@@ -256,7 +256,7 @@ class CoinbaseWebSocketClientTest {
                 testData.get("subscriptionMessages").get("subscribeResponse")));
 
         Method handleMessage = ReflectionTestUtils.getMethod(
-                CoinbaseWebSocketClient.class,
+                CoinbaseWebSocketCollector.class,
                 client,
                 "handleMessage",
                 String.class

@@ -8,10 +8,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import ms.maxwillia.cryptodata.client.BaseExchangeClient;
-import ms.maxwillia.cryptodata.client.ExchangeClient;
-import ms.maxwillia.cryptodata.client.rest.FiriRestClient;
-import ms.maxwillia.cryptodata.client.websocket.CoinbaseWebSocketClient;
+import ms.maxwillia.cryptodata.client.BaseExchangeCollector;
+import ms.maxwillia.cryptodata.client.ExchangeCollector;
+import ms.maxwillia.cryptodata.client.rest.FiriRestCollector;
+import ms.maxwillia.cryptodata.client.websocket.CoinbaseWebSocketCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +27,7 @@ public class CryptoDataCollector {
     private final Map<String, BlockingQueue<CryptoTick>> dataQueues;
     private final Map<String, CsvStorage> storages;
     private final Map<String, QueueMetrics> queueMetrics;
-    private final List<ExchangeClient> clients;
+    private final List<ExchangeCollector> clients;
     private volatile boolean running = true;
     private final List<Thread> processors;
 
@@ -82,7 +82,7 @@ public class CryptoDataCollector {
     }
 
     private void createExchangeClientsAndComponents(String[] currencies) throws IOException {
-        BaseExchangeClient client;
+        BaseExchangeCollector client;
         String key;
         for (String currency : currencies) {
             for (String exchange : Arrays.asList("Coinbase", "Firi")) {
@@ -104,9 +104,9 @@ public class CryptoDataCollector {
 
                 // Create client
                 if (exchange.equals("Coinbase")) {
-                    client = new CoinbaseWebSocketClient(currency, queue);
+                    client = new CoinbaseWebSocketCollector(currency, queue);
                 } else if (exchange.equals("Firi")) {
-                    client = new FiriRestClient(currency, queue);
+                    client = new FiriRestCollector(currency, queue);
                 } else {
                     throw new IllegalArgumentException("Unknown exchange: " + exchange);
                 }
@@ -188,7 +188,7 @@ public class CryptoDataCollector {
 
     public void start() {
         // Start all clients
-        for (ExchangeClient client : clients) {
+        for (ExchangeCollector client : clients) {
             logger.info("Starting data collection for {}", client.toString());
             client.initialize();
             client.startDataCollection();
@@ -205,7 +205,7 @@ public class CryptoDataCollector {
     public void stop() {
         logger.info("Stopping data collection");
 
-        for (ExchangeClient client : clients) {
+        for (ExchangeCollector client : clients) {
             client.stopDataCollection();
         }
 

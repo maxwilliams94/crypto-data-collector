@@ -1,11 +1,11 @@
 package ms.maxwillia.cryptodata.client.websocket;
 
-import ms.maxwillia.cryptodata.client.ExchangeClient;
+import ms.maxwillia.cryptodata.client.ExchangeCollector;
 
 /**
  * Interface for WebSocket-specific client functionality
  */
-public interface WebSocketClient extends ExchangeClient {
+public interface WebSocketCollector extends ExchangeCollector {
     /**
      * Connect to the WebSocket
      * @return true if connection successful

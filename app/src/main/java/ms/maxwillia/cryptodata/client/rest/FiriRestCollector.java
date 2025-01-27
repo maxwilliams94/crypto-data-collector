@@ -14,8 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class FiriRestClient extends BaseRestClient {
-    private static final Logger logger = LoggerFactory.getLogger(FiriRestClient.class);
+public class FiriRestCollector extends BaseRestCollector {
+    private static final Logger logger = LoggerFactory.getLogger(FiriRestCollector.class);
     private static final String DEFAULT_FIRI_API_BASE_URL = "https://api.firi.com/v2";
     private final String baseUrl;
     private final String FIRI_REST_API_ORDER_BOOK_URL;
@@ -31,11 +31,11 @@ public class FiriRestClient extends BaseRestClient {
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public FiriRestClient(String symbol, BlockingQueue<CryptoTick> dataQueue) {
+    public FiriRestCollector(String symbol, BlockingQueue<CryptoTick> dataQueue) {
         this(symbol, dataQueue, DEFAULT_FIRI_API_BASE_URL);
     }
 
-    public FiriRestClient(String symbol, BlockingQueue<CryptoTick> dataQueue, String baseUrl) {
+    public FiriRestCollector(String symbol, BlockingQueue<CryptoTick> dataQueue, String baseUrl) {
         super("Firi", symbol, dataQueue);
         this.baseUrl = baseUrl;
         this.FIRI_REST_API_ORDER_BOOK_URL = String.format("%s/markets/%s/depth", baseUrl, getExchangeSymbol());

@@ -1,11 +1,11 @@
 package ms.maxwillia.cryptodata.client.rest;
 
-import ms.maxwillia.cryptodata.client.ExchangeClient;
+import ms.maxwillia.cryptodata.client.ExchangeCollector;
 
 /**
  * Interface for REST-specific client functionality
  */
-public interface RestClient extends ExchangeClient {
+public interface RestCollector extends ExchangeCollector {
 
     /**
      * Test REST API connectivity

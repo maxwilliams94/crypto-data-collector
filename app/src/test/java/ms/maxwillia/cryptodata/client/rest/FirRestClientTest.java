@@ -29,7 +29,7 @@ class FiriRestClientTest {
     private static final String TEST_SYMBOL = "BTC-NOK"; // Not exchange specific
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private MockWebServer mockWebServer;
-    private FiriRestClient client;
+    private FiriRestCollector client;
     private BlockingQueue<CryptoTick> dataQueue;
     private JsonNode testData;
 
@@ -55,7 +55,7 @@ class FiriRestClientTest {
         dataQueue = new LinkedBlockingQueue<>();
 
         String mockBaseUrl = mockWebServer.url("/").toString().replaceAll("/$", "");
-        client = new FiriRestClient(TEST_CURRENCY, dataQueue, mockBaseUrl);
+        client = new FiriRestCollector(TEST_CURRENCY, dataQueue, mockBaseUrl);
 
         // Use shorter timeouts for testing
         OkHttpClient testHttpClient = new OkHttpClient.Builder()
@@ -192,7 +192,7 @@ class FiriRestClientTest {
     void testHandleServerError() throws Exception {
         // Override baseUrl to hit error endpoint
         String errorBaseUrl = mockWebServer.url("/error").toString().replaceAll("/$", "");
-        client = new FiriRestClient(TEST_CURRENCY, dataQueue, errorBaseUrl);
+        client = new FiriRestCollector(TEST_CURRENCY, dataQueue, errorBaseUrl);
 
         assertFalse(client.initialize());
         assertEquals(ClientStatus.ERROR, client.getStatus());
@@ -202,7 +202,7 @@ class FiriRestClientTest {
     void testHandleMalformedData() throws Exception {
         // Override baseUrl to hit malformed data endpoint
         String malformedBaseUrl = mockWebServer.url("/malformed").toString().replaceAll("/$", "");
-        client = new FiriRestClient(TEST_CURRENCY, dataQueue, malformedBaseUrl);
+        client = new FiriRestCollector(TEST_CURRENCY, dataQueue, malformedBaseUrl);
 
         assertTrue(client.initialize());
         assertTrue(client.startDataCollection());

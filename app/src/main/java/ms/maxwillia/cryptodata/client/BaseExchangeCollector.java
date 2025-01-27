@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 
-public abstract class BaseExchangeClient implements ExchangeClient {
+public abstract class BaseExchangeCollector implements ExchangeCollector {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     protected final BlockingQueue<CryptoTick> dataQueue;
     protected volatile ClientStatus status;
@@ -16,7 +16,7 @@ public abstract class BaseExchangeClient implements ExchangeClient {
     protected String symbol;
     protected String currency;
 
-    protected BaseExchangeClient(String exchangeName, String currency, BlockingQueue<CryptoTick> dataQueue) {
+    protected BaseExchangeCollector(String exchangeName, String currency, BlockingQueue<CryptoTick> dataQueue) {
         this.currency = currency;
         this.exchangeName = exchangeName;
         this.dataQueue = dataQueue;

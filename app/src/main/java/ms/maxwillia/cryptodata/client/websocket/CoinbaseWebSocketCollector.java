@@ -11,13 +11,13 @@ import java.util.concurrent.BlockingQueue;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 
-public class CoinbaseWebSocketClient extends BaseWebSocketClient {
+public class CoinbaseWebSocketCollector extends BaseWebSocketCollector {
     private static final String COINBASE_WS_URL = "wss://advanced-trade-ws.coinbase.com";
     private final ObjectMapper objectMapper = new ObjectMapper();
     private WebSocketClient wsClient;
     private double usdRate = 1.0;
 
-    public CoinbaseWebSocketClient(String symbol, BlockingQueue<CryptoTick> dataQueue) {
+    public CoinbaseWebSocketCollector(String symbol, BlockingQueue<CryptoTick> dataQueue) {
         super("Coinbase", symbol, dataQueue);
     }
 
@@ -255,8 +255,8 @@ public class CoinbaseWebSocketClient extends BaseWebSocketClient {
     }
 
     // Factory method for convenience
-    public static CoinbaseWebSocketClient forSymbol(BlockingQueue<CryptoTick> dataQueue,
-                                            String symbol) {
-        return new CoinbaseWebSocketClient(symbol, dataQueue);
+    public static CoinbaseWebSocketCollector forSymbol(BlockingQueue<CryptoTick> dataQueue,
+                                                       String symbol) {
+        return new CoinbaseWebSocketCollector(symbol, dataQueue);
     }
 }

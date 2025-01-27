@@ -1,6 +1,6 @@
 package ms.maxwillia.cryptodata.client.rest;
 
-import ms.maxwillia.cryptodata.client.BaseExchangeClient;
+import ms.maxwillia.cryptodata.client.BaseExchangeCollector;
 import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.model.CryptoTick;
 import okhttp3.OkHttpClient;
@@ -15,8 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class BaseRestClient extends BaseExchangeClient implements RestClient {
-    private static final Logger logger = LoggerFactory.getLogger(BaseRestClient.class);
+public abstract class BaseRestCollector extends BaseExchangeCollector implements RestCollector {
+    private static final Logger logger = LoggerFactory.getLogger(BaseRestCollector.class);
 
     protected final ScheduledExecutorService scheduler;
     protected final OkHttpClient httpClient;
@@ -26,7 +26,7 @@ public abstract class BaseRestClient extends BaseExchangeClient implements RestC
     protected long pollingIntervalMs;
     protected static final long DEFAULT_POLLING_INTERVAL_MS = 1000; // 1 second default
 
-    protected BaseRestClient(String exchangeName, String currency, BlockingQueue<CryptoTick> dataQueue) {
+    protected BaseRestCollector(String exchangeName, String currency, BlockingQueue<CryptoTick> dataQueue) {
         super(exchangeName, currency, dataQueue);
         this.scheduler = Executors.newScheduledThreadPool(2);
         this.httpClient = new OkHttpClient.Builder()

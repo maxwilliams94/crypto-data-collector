@@ -4,7 +4,7 @@ package ms.maxwillia.cryptodata.client;
 /**
  * Core interface for all exchange clients (WebSocket, REST, etc.)
  */
-public interface ExchangeClient {
+public interface ExchangeCollector {
 
     /**
      * Get a string representation of the client
