@@ -196,7 +196,7 @@ public class CryptoDataCollector {
             // Create and start processor thread for this symbol
             Thread processor = new Thread(
                     () -> processData(generateKey(client.getExchangeName(), client.getCurrency())),
-                    "DataProcessor-%s-%s".formatted(client.getExchangeName(), client.getSubscribedSymbol()));
+                    "DataProcessor-%s-%s".formatted(client.getExchangeName(), client.getSymbol()));
             processors.add(processor);
             processor.start();
         }

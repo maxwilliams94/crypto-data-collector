@@ -7,54 +7,15 @@ import org.slf4j.LoggerFactory;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 
-public abstract class BaseExchangeCollector implements ExchangeCollector {
-    protected final Logger logger = LoggerFactory.getLogger(getClass());
+public abstract class BaseExchangeCollector extends BaseExchangeClient implements ExchangeCollector {
     protected final BlockingQueue<CryptoTick> dataQueue;
-    protected volatile ClientStatus status;
-    protected final String exchangeName;
     protected long lastSequenceNumber = -1;
-    protected String symbol;
-    protected String currency;
 
     protected BaseExchangeCollector(String exchangeName, String currency, BlockingQueue<CryptoTick> dataQueue) {
-        this.currency = currency;
-        this.exchangeName = exchangeName;
+        super(exchangeName, currency);
         this.dataQueue = dataQueue;
-        this.status = ClientStatus.INITIALIZED;
         setSymbolFromCurrency(currency);
         logger.info("Created client for {} with symbol: {}", exchangeName, currency);
-    }
-
-    public String toString() {
-        return String.format("%s: %s", exchangeName, getSubscribedSymbol());
-    }
-
-    @Override
-    public String getExchangeName() {
-        return exchangeName;
-    }
-
-    @Override
-    public String getSubscribedSymbol() {
-        return this.symbol;
-    }
-
-    @Override
-    public String getCurrency() {
-        return this.currency;
-    }
-
-    abstract protected void setSymbolFromCurrency(String currency);
-
-    @Override
-    public ClientStatus getStatus() {
-        return status;
-    }
-
-    protected void setStatus(ClientStatus newStatus) {
-        ClientStatus oldStatus = this.status;
-        this.status = newStatus;
-        logger.info("{}: Status changed from {} to {}", exchangeName, oldStatus, newStatus);
     }
 
     protected void offerTick(CryptoTick tick) {

@@ -4,25 +4,7 @@ package ms.maxwillia.cryptodata.client;
 /**
  * Core interface for all exchange clients (WebSocket, REST, etc.)
  */
-public interface ExchangeCollector {
-
-    /**
-     * Get a string representation of the client
-     * @return string representation
-     */
-    String toString();
-
-    /**
-     * Initialize the client connection
-     * @return true if initialization was successful
-     */
-    boolean initialize();
-
-    /**
-     * Configure REST client parameters
-     * @return true if configuration successful
-     */
-    boolean configure();
+public interface ExchangeCollector extends ExchangeClient {
 
     /**
      * Start collecting data from the exchange
@@ -36,28 +18,10 @@ public interface ExchangeCollector {
     void stopDataCollection();
 
     /**
-     * Get the exchange name
-     * @return exchange name
-     */
-    String getExchangeName();
-
-    /**
      * Get the subscribed symbol (standard format)
      * @return symbol
      */
-    String getSubscribedSymbol();
-
-    /**
-     * Get the currency symbol (standard format)
-     * @return currency
-     */
-    String getCurrency();
-
-    /**
-     * Get the subscribed symbol (format for the exchange)
-     * @return symbol
-     */
-    String getExchangeSymbol();
+    String getSymbol();
 
     /**
      * Get the USD-CCY rate for conversion purposes. Only applicable for exchanges that cannot use USD directly.
@@ -71,9 +35,4 @@ public interface ExchangeCollector {
      */
     boolean isCollecting();
 
-    /**
-     * Get client status
-     * @return current status
-     */
-    ClientStatus getStatus();
 }

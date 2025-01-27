@@ -70,7 +70,7 @@ class CoinbaseWebSocketClientTest {
     void testInitialStatus() {
         assertEquals(ClientStatus.INITIALIZED, client.getStatus());
         assertEquals("Coinbase", client.getExchangeName());
-        assertEquals(TEST_SYMBOL, client.getSubscribedSymbol());
+        assertEquals(TEST_SYMBOL, client.getSymbol());
     }
 
     @Test

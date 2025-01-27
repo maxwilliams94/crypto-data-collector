@@ -34,7 +34,7 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector {
 
     @Override
     public void updateUsdRate() {
-        if (getSubscribedSymbol().contains("USD")) {
+        if (getSymbol().contains("USD")) {
             usdRate = 1.0;
         } else {
             // TODO: Implement
