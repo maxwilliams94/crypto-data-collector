@@ -17,10 +17,16 @@
 - [X] Firi REST api - unittesting
 - [X] Firi REST api - testing
 - [ ] Better price logging
-- [ ] Testing/Design for making orders
+
+### Arbitrage
+- [ ] Design for detecting arbitrage opportunities
+- [ ] Data collection interfaces and parent classes split into distinct collection classes
+- [ ] Booking/trading interfaces and parent classes
+- [ ] Arbitrage runner class launching collection instances and empty booking instances
+- [ ] arbitrage detection
+- [ ] Test runs with empty trading empty arbitrage opportunities
 - [ ] Coinbase Authentication
 - [ ] Firi Authentication
-- [ ] Design for detecting arbitrage opportunies
 
 ## Features
 - [ ] Allow choice of exchange(s) to be defined at runtime
