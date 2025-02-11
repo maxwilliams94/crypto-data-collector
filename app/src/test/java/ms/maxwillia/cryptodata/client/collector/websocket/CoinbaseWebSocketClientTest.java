@@ -1,4 +1,4 @@
-package ms.maxwillia.cryptodata.client.websocket;
+package ms.maxwillia.cryptodata.client.collector.websocket;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
@@ -12,6 +12,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import ms.maxwillia.cryptodata.client.ClientStatus;
+import ms.maxwillia.cryptodata.client.collector.websocket.CoinbaseWebSocketCollector;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import org.junit.jupiter.api.BeforeEach;

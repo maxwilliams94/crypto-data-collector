@@ -1,8 +1,10 @@
-package ms.maxwillia.cryptodata.client;
+package ms.maxwillia.cryptodata.client.trader;
+
+import ms.maxwillia.cryptodata.client.ExchangeClient;
 
 import java.util.HashMap;
 
-public interface ExchangeTrader extends ExchangeClient{
+public interface ExchangeTrader extends ExchangeClient {
     public boolean connect();
     public void disconnect();
     public boolean marketBuy(double targetPrice, double quantity);

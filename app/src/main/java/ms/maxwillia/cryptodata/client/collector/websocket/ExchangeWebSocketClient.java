@@ -1,4 +1,4 @@
-package ms.maxwillia.cryptodata.client.websocket;
+package ms.maxwillia.cryptodata.client.collector.websocket;
 
 import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.model.CryptoTick;

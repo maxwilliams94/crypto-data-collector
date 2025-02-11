@@ -1,6 +1,6 @@
-package ms.maxwillia.cryptodata.client.websocket;
+package ms.maxwillia.cryptodata.client.collector.websocket;
 
-import ms.maxwillia.cryptodata.client.ExchangeCollector;
+import ms.maxwillia.cryptodata.client.collector.ExchangeCollector;
 
 /**
  * Interface for WebSocket-specific client functionality

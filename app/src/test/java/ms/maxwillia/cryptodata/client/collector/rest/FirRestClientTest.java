@@ -1,8 +1,9 @@
-package ms.maxwillia.cryptodata.client.rest;
+package ms.maxwillia.cryptodata.client.collector.rest;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ms.maxwillia.cryptodata.client.ClientStatus;
+import ms.maxwillia.cryptodata.client.collector.rest.FiriRestCollector;
 import ms.maxwillia.cryptodata.model.CryptoTick;
 import ms.maxwillia.cryptodata.utils.ReflectionTestUtils;
 import okhttp3.OkHttpClient;

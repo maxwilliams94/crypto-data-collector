@@ -1,4 +1,4 @@
-package ms.maxwillia.cryptodata.client.rest;
+package ms.maxwillia.cryptodata.client.collector.rest;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

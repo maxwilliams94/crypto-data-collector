@@ -1,5 +1,6 @@
-package ms.maxwillia.cryptodata.client;
+package ms.maxwillia.cryptodata.client.trader;
 
+import ms.maxwillia.cryptodata.client.BaseExchangeClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

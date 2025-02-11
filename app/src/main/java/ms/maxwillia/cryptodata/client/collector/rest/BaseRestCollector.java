@@ -1,6 +1,6 @@
-package ms.maxwillia.cryptodata.client.rest;
+package ms.maxwillia.cryptodata.client.collector.rest;
 
-import ms.maxwillia.cryptodata.client.BaseExchangeCollector;
+import ms.maxwillia.cryptodata.client.collector.BaseExchangeCollector;
 import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.model.CryptoTick;
 import okhttp3.OkHttpClient;

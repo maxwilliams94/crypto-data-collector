@@ -1,6 +1,6 @@
-package ms.maxwillia.cryptodata.client.rest;
+package ms.maxwillia.cryptodata.client.collector.rest;
 
-import ms.maxwillia.cryptodata.client.ExchangeCollector;
+import ms.maxwillia.cryptodata.client.collector.ExchangeCollector;
 
 /**
  * Interface for REST-specific client functionality

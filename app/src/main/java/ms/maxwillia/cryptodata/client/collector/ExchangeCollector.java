@@ -1,5 +1,7 @@
-package ms.maxwillia.cryptodata.client;
+package ms.maxwillia.cryptodata.client.collector;
 
+
+import ms.maxwillia.cryptodata.client.ExchangeClient;
 
 /**
  * Core interface for all exchange clients (WebSocket, REST, etc.)

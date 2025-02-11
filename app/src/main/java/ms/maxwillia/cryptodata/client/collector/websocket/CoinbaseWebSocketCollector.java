@@ -1,4 +1,4 @@
-package ms.maxwillia.cryptodata.client.websocket;
+package ms.maxwillia.cryptodata.client.collector.websocket;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,7 +11,7 @@ import java.util.concurrent.BlockingQueue;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 
-public class CoinbaseWebSocketCollector extends BaseWebSocketCollector {
+public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implements ExchangeWebSocketClient {
     private static final String COINBASE_WS_URL = "wss://advanced-trade-ws.coinbase.com";
     private final ObjectMapper objectMapper = new ObjectMapper();
     private WebSocketClient wsClient;
@@ -102,6 +102,11 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector {
             wsClient.close();
         }
         setStatus(ClientStatus.STOPPED);
+    }
+
+    @Override
+    public String getSubscribedSymbol() {
+        return symbol;
     }
 
     @Override

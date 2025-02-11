@@ -20,7 +20,8 @@
 
 ### Arbitrage
 - [ ] Design for detecting arbitrage opportunities
-- [ ] Data collection interfaces and parent classes split into distinct collection classes
+- [X] Data collection interfaces and parent classes split into distinct collection classes
+- [ ] Make sure that new interfaces are being used
 - [ ] `offerTick` compatibility with `BlockingQueue` and `AtomicDouble`
 - [ ] Booking/trading interfaces and parent classes
 - [ ] Arbitrage runner class launching collection instances and empty booking instances

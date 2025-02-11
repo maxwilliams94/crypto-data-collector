@@ -8,10 +8,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import ms.maxwillia.cryptodata.client.BaseExchangeCollector;
-import ms.maxwillia.cryptodata.client.ExchangeCollector;
-import ms.maxwillia.cryptodata.client.rest.FiriRestCollector;
-import ms.maxwillia.cryptodata.client.websocket.CoinbaseWebSocketCollector;
+import ms.maxwillia.cryptodata.client.collector.BaseExchangeCollector;
+import ms.maxwillia.cryptodata.client.collector.ExchangeCollector;
+import ms.maxwillia.cryptodata.client.collector.rest.FiriRestCollector;
+import ms.maxwillia.cryptodata.client.collector.websocket.CoinbaseWebSocketCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
