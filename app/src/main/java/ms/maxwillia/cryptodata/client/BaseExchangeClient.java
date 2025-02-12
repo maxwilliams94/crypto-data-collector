@@ -11,7 +11,7 @@ public abstract class BaseExchangeClient {
     protected String currency;
 
     public BaseExchangeClient(String exchangeName, String currency) {
-        this.status = ClientStatus.INITIALIZED;
+        this.status = null;
         this.exchangeName = exchangeName;
         this.currency = currency;
     }

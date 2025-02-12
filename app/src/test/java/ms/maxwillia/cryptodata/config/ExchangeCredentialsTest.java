@@ -23,7 +23,7 @@ public class ExchangeCredentialsTest {
         try {
             assert credentials.getName() != null;
         } catch (Exception e) {
-            e.printStackTrace();
+
         }
     }
 

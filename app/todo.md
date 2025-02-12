@@ -39,6 +39,8 @@
 
 ## Clean-up/Refactor
 - [ ] Reconnection logic / implementation 
+- [ ] States/ClientStatus needs cleaning up
+- [ ] Events can be stored within the client or logged without updating the status
 - [ ] Subscription separation from websocket connection/onOpen
 - [ ] Stale USD rate handling -> stop data collection
 - [ ] CoinbaseWebSocketClient - allow websocket URL to be configurable with sensible default

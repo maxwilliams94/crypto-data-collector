@@ -12,3 +12,4 @@ plugins {
 
 rootProject.name = "crypto-data-collector"
 include("app")
+include("coinbase-jwt")

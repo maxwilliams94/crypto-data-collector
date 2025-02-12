@@ -17,5 +17,11 @@ public interface ExchangeTrader extends ExchangeClient {
 
     public boolean walletWithdraw(double amount, String walletAddress);
 
+    public void enableTrading();
+
+    public void disableTrading();
+
+    public boolean canTrade();
+
     public HashMap<String, Double> getBalances();
 }

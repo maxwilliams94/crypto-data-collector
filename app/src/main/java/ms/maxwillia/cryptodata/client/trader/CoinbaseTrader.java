@@ -1,8 +1,14 @@
 package ms.maxwillia.cryptodata.client.trader;
 
+import java.net.URI;
+import java.util.Map;
+import java.util.HashMap;
+import java.time.Instant;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
@@ -12,39 +18,26 @@ import com.nimbusds.jwt.SignedJWT;
 import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
 import okhttp3.*;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
-
-import java.io.IOException;
-import java.io.StringReader;
-import java.security.KeyFactory;
-import java.security.PrivateKey;
-import java.security.Security;
-import java.security.interfaces.ECPrivateKey;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+
 public class CoinbaseTrader extends BaseExchangeTrader {
-    private static final String COINBASE_API_URL = "https://api.coinbase.com/api/v3/brokerage";
+    private String COINBASE_API_ROOT = "https://api.coinbase.com/api/v3/brokerage";
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
-    private final ExchangeCredentials credentials;
-    private ECPrivateKey privateKey;
-    private volatile boolean isConnected = false;
 
     public CoinbaseTrader(String currency, ExchangeCredentials credentials) {
-        super("Coinbase", currency);
-        this.credentials = credentials;
+        super("Coinbase", currency, credentials);
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .build();
         this.objectMapper = new ObjectMapper();
+    }
+
+    private static String getSchemelessURL(String url) {
+        return url.substring(URI.create(url).getScheme().length() + 3);
     }
 
     @Override
@@ -57,13 +50,18 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         return symbol;
     }
 
+    public void setApiRoot(String apiRoot) {
+        this.COINBASE_API_ROOT = apiRoot;
+    }
+
     @Override
     public boolean initialize() {
+        setStatus(ClientStatus.STARTING);
         try {
             if (!configure()) {
                 return false;
             }
-            setStatus(ClientStatus.STARTING);
+            setStatus(ClientStatus.INITIALIZED);
             return true;
         } catch (Exception e) {
             logger.error("Failed to initialize Coinbase trader: {}", e.getMessage());
@@ -72,70 +70,36 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         }
     }
 
-    @Override
-    public boolean configure() {
-        try {
-            if (credentials == null || credentials.getName() == null || credentials.getPrivateKey() == null) {
-                logger.error("Missing Coinbase credentials");
-                return false;
-            }
-            initializeSecurity();
-            return true;
-        } catch (Exception e) {
-            logger.error("Error configuring Coinbase trader: {}", e.getMessage());
-            return false;
+    protected String generateJWT(String requestMethod, String requestUrl) throws Exception {
+        // create header object
+        Map<String, Object> header = new HashMap<>();
+        header.put("alg", "ES256");
+        header.put("typ", "JWT");
+        header.put("kid", credentials.getName());
+        header.put("nonce", String.valueOf(Instant.now().getEpochSecond()));
+
+        // create uri string for current request
+        String uri = requestMethod + " " + requestUrl;
+
+        // create data object
+        Map<String, Object> data = new HashMap<>();
+        data.put("iss", "cdp");
+        data.put("nbf", Instant.now().getEpochSecond());
+        data.put("exp", Instant.now().getEpochSecond() + 120);
+        data.put("sub", credentials.getName());
+        data.put("uri", uri);
+
+        // create JWT
+        JWTClaimsSet.Builder claimsSetBuilder = new JWTClaimsSet.Builder();
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            claimsSetBuilder.claim(entry.getKey(), entry.getValue());
         }
-    }
+        JWTClaimsSet claimsSet = claimsSetBuilder.build();
 
-    private void initializeSecurity() throws Exception {
-        Security.addProvider(new BouncyCastleProvider());
-
-        String privateKeyPEM = credentials.getPrivateKey().replace("\\n", "\n");
-        try (PEMParser pemParser = new PEMParser(new StringReader(privateKeyPEM))) {
-            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
-            Object object = pemParser.readObject();
-            PrivateKey rawPrivateKey;
-
-            if (object instanceof PrivateKey) {
-                rawPrivateKey = (PrivateKey) object;
-            } else if (object instanceof org.bouncycastle.openssl.PEMKeyPair) {
-                rawPrivateKey = converter.getPrivateKey(((org.bouncycastle.openssl.PEMKeyPair) object).getPrivateKeyInfo());
-            } else {
-                throw new Exception("Unexpected private key format");
-            }
-
-            KeyFactory keyFactory = KeyFactory.getInstance("EC");
-            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(rawPrivateKey.getEncoded());
-            this.privateKey = (ECPrivateKey) keyFactory.generatePrivate(keySpec);
-        }
-    }
-
-    private String generateJWT(String method, String requestPath) throws Exception {
-        if (privateKey == null) {
-            throw new IllegalStateException("Private key not initialized");
-        }
-
-        long timestamp = Instant.now().getEpochSecond();
-        String uri = method + " " + requestPath;
-
-        // Create header
-        JWSHeader jwsHeader = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                .customParam("kid", credentials.getName())
-                .customParam("nonce", String.valueOf(timestamp))
-                .build();
-
-        // Create claims
-        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .claim("iss", "cdp")
-                .claim("sub", credentials.getName())
-                .claim("nbf", timestamp)
-                .claim("exp", timestamp + 120)
-                .claim("uri", uri)
-                .build();
-
-        // Sign JWT
+        JWSHeader jwsHeader = new JWSHeader.Builder(JWSAlgorithm.ES256).customParams(header).build();
         SignedJWT signedJWT = new SignedJWT(jwsHeader, claimsSet);
-        JWSSigner signer = new ECDSASigner(privateKey);
+
+        JWSSigner signer = new ECDSASigner(ecPrivateKey);
         signedJWT.sign(signer);
 
         return signedJWT.serialize();
@@ -148,12 +112,12 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         }
 
         try {
-            String jwt = generateJWT("GET", "/api/v3/brokerage/accounts");
+            String url = COINBASE_API_ROOT + "/api/v3/brokerage/accounts";
+            String jwt = generateJWT("GET", getSchemelessURL(url));
             Request request = new Request.Builder()
-                    .url(COINBASE_API_URL + "/accounts")
+                    .url(url)
                     .header("Authorization", "Bearer " + jwt)
                     .build();
-
             try (Response response = httpClient.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
                     logger.error("Connection test failed with response code: {}", response.code());
@@ -161,7 +125,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                     return false;
                 }
                 isConnected = true;
-                setStatus(ClientStatus.COLLECTING);
+                setStatus(ClientStatus.CONNECTED);
                 return true;
             }
         } catch (Exception e) {
@@ -217,9 +181,10 @@ public class CoinbaseTrader extends BaseExchangeTrader {
 
             orderRequest.put("base_quantity", String.format("%.8f", quantity));
 
-            String jwt = generateJWT("POST", "/api/v3/brokerage/orders");
+            String url = COINBASE_API_ROOT + "/api/v3/brokerage/orders";
+            String jwt = generateJWT("GET", getSchemelessURL(url));
             Request request = new Request.Builder()
-                    .url(COINBASE_API_URL + "/orders")
+                    .url(url)
                     .header("Authorization", "Bearer " + jwt)
                     .post(RequestBody.create(
                             objectMapper.writeValueAsString(orderRequest),
@@ -259,9 +224,10 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                     .put("currency", getCurrency())
                     .put("address", walletAddress);
 
-            String jwt = generateJWT("POST", "/api/v3/brokerage/withdrawals/crypto");
+            String url = COINBASE_API_ROOT + "/api/v3/withdrawals/crypto";
+            String jwt = generateJWT("GET", getSchemelessURL(url));
             Request request = new Request.Builder()
-                    .url(COINBASE_API_URL + "/withdrawals/crypto")
+                    .url(url)
                     .header("Authorization", "Bearer " + jwt)
                     .post(RequestBody.create(
                             objectMapper.writeValueAsString(withdrawRequest),
@@ -292,9 +258,10 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         }
 
         try {
-            String jwt = generateJWT("GET", "/api/v3/brokerage/accounts");
+            String url = COINBASE_API_ROOT + "/api/v3/brokerage/accounts";
+            String jwt = generateJWT("GET", getSchemelessURL(url));
             Request request = new Request.Builder()
-                    .url(COINBASE_API_URL + "/accounts")
+                    .url(COINBASE_API_ROOT + "/api/v3/brokerage/accounts")
                     .header("Authorization", "Bearer " + jwt)
                     .build();
 
