@@ -17,12 +17,14 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
+import ms.maxwillia.cryptodata.model.Transaction;
+import ms.maxwillia.cryptodata.model.TransactionStatus;
 import okhttp3.*;
 import java.util.concurrent.TimeUnit;
 
 
 public class CoinbaseTrader extends BaseExchangeTrader {
-    private String COINBASE_API_ROOT = "https://api.coinbase.com/api/v3/brokerage";
+    private HttpUrl COINBASE_API_ROOT = HttpUrl.parse("https://api.coinbase.com");
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
 
@@ -50,7 +52,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         return symbol;
     }
 
-    public void setApiRoot(String apiRoot) {
+    public void setApiRoot(HttpUrl apiRoot) {
         this.COINBASE_API_ROOT = apiRoot;
     }
 
@@ -112,8 +114,8 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         }
 
         try {
-            String url = COINBASE_API_ROOT + "/api/v3/brokerage/accounts";
-            String jwt = generateJWT("GET", getSchemelessURL(url));
+            HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/accounts?limit=1");
+            String jwt = generateJWT("GET", getSchemelessURL(url.toString()));
             Request request = new Request.Builder()
                     .url(url)
                     .header("Authorization", "Bearer " + jwt)
@@ -153,7 +155,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
 
     @Override
     public boolean limitBuy(double targetPrice, double quantity) {
-        return executeOrder("LIMIT", "BUY", targetPrice, quantity);
+        return false;
     }
 
     @Override
@@ -162,10 +164,19 @@ public class CoinbaseTrader extends BaseExchangeTrader {
     }
 
     private boolean executeOrder(String orderType, String side, double price, double quantity) {
+        logger.info("{}: executing {} {} order - Price: {}, Quantity: {}", getCurrency(), orderType, side, price, quantity);
         if (!isConnected) {
             logger.error("Cannot execute order - not connected");
             return false;
         }
+        
+        Transaction transaction = Transaction.builder()
+                .exchange(getExchangeName())
+                .currency(getCurrency())
+                .orderType(orderType)
+                .requestedPrice(price)
+                .requestedQuantity(quantity)
+                .build();
 
         try {
             ObjectNode orderRequest = objectMapper.createObjectNode()
@@ -174,15 +185,10 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                     .put("side", side)
                     .put("order_type", orderType);
 
-            if (orderType.equals("LIMIT")) {
-                orderRequest.put("limit_price", String.format("%.2f", price))
-                        .put("time_in_force", "GTC");
-            }
-
             orderRequest.put("base_quantity", String.format("%.8f", quantity));
 
-            String url = COINBASE_API_ROOT + "/api/v3/brokerage/orders";
-            String jwt = generateJWT("GET", getSchemelessURL(url));
+            HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/orders");
+            String jwt = generateJWT("POST", getSchemelessURL(url.toString()));
             Request request = new Request.Builder()
                     .url(url)
                     .header("Authorization", "Bearer " + jwt)
@@ -191,11 +197,26 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                             MediaType.parse("application/json")))
                     .build();
 
+            if (!canTrade()) {
+                logger.info("Trading disabled: transaction will not be executed");
+                addTransaction(transaction);
+                return true;
+            }
+
+            transaction.requestTimeNow();
             try (Response response = httpClient.newCall(request).execute()) {
+                transaction.executedTimeNow();
+                transaction.setResponse(response.toString());
                 if (!response.isSuccessful()) {
                     String errorBody = response.body() != null ? response.body().string() : "No error details";
                     logger.error("Order execution failed - Status: {}, Error: {}",
                             response.code(), errorBody);
+                    if (response.code() >= 400 && response.code() < 500){
+                        transaction.setStatus(TransactionStatus.REQUEST_ERROR);
+                    } else {
+                        transaction.setStatus(TransactionStatus.EXECUTION_ERROR);
+                    }
+                    addTransaction(transaction);
                     return false;
                 }
 
@@ -207,6 +228,8 @@ public class CoinbaseTrader extends BaseExchangeTrader {
             }
         } catch (Exception e) {
             logger.error("Failed to execute {} {} order: {}", orderType, side, e.getMessage());
+            transaction.setStatus(TransactionStatus.REQUEST_ERROR);
+            addTransaction(transaction);
             return false;
         }
     }
@@ -224,8 +247,8 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                     .put("currency", getCurrency())
                     .put("address", walletAddress);
 
-            String url = COINBASE_API_ROOT + "/api/v3/withdrawals/crypto";
-            String jwt = generateJWT("GET", getSchemelessURL(url));
+            HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/withdrawals/crypto");
+            String jwt = generateJWT("POST", getSchemelessURL(url.toString()));
             Request request = new Request.Builder()
                     .url(url)
                     .header("Authorization", "Bearer " + jwt)
@@ -258,8 +281,8 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         }
 
         try {
-            String url = COINBASE_API_ROOT + "/api/v3/brokerage/accounts";
-            String jwt = generateJWT("GET", getSchemelessURL(url));
+            HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/accounts");
+            String jwt = generateJWT("GET", getSchemelessURL(url.toString()));
             Request request = new Request.Builder()
                     .url(COINBASE_API_ROOT + "/api/v3/brokerage/accounts")
                     .header("Authorization", "Bearer " + jwt)
