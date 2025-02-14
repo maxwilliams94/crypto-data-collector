@@ -2,7 +2,9 @@ package ms.maxwillia.cryptodata.client.trader;
 
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
 import ms.maxwillia.cryptodata.client.ClientStatus;
+import ms.maxwillia.cryptodata.model.TransactionSide;
 import ms.maxwillia.cryptodata.model.TransactionStatus;
+import ms.maxwillia.cryptodata.model.TransactionType;
 import okhttp3.HttpUrl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -82,6 +84,20 @@ class CoinbaseTraderTest {
         var success = coinbaseTrader.marketBuy(0.01, 0.01);
         assert coinbaseTrader.getTransactions().size() == 1;
         assert coinbaseTrader.getTransactions().getFirst().getStatus() == TransactionStatus.CREATED;
+        assert coinbaseTrader.getTransactions().getFirst().getSide() == TransactionSide.BUY;
+        assert coinbaseTrader.getTransactions().getFirst().getOrderType() == TransactionType.MARKET;
+        assert success;
+    }
+
+    @Test
+    void testDryMarketSell() {
+        coinbaseTrader.initialize();
+        coinbaseTrader.connect();
+        var success = coinbaseTrader.marketSell(0.01, 0.01);
+        assert coinbaseTrader.getTransactions().size() == 1;
+        assert coinbaseTrader.getTransactions().getFirst().getStatus() == TransactionStatus.CREATED;
+        assert coinbaseTrader.getTransactions().getFirst().getSide() == TransactionSide.SELL;
+        assert coinbaseTrader.getTransactions().getFirst().getOrderType() == TransactionType.MARKET;
         assert success;
     }
 

@@ -18,7 +18,9 @@ import com.nimbusds.jwt.SignedJWT;
 import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
 import ms.maxwillia.cryptodata.model.Transaction;
+import ms.maxwillia.cryptodata.model.TransactionSide;
 import ms.maxwillia.cryptodata.model.TransactionStatus;
+import ms.maxwillia.cryptodata.model.TransactionType;
 import okhttp3.*;
 import java.util.concurrent.TimeUnit;
 
@@ -145,12 +147,12 @@ public class CoinbaseTrader extends BaseExchangeTrader {
 
     @Override
     public boolean marketBuy(double targetPrice, double quantity) {
-        return executeOrder("MARKET", "BUY", targetPrice, quantity);
+        return executeOrder(TransactionType.MARKET, TransactionSide.BUY, targetPrice, quantity);
     }
 
     @Override
     public boolean marketSell(double targetPrice, double quantity) {
-        return executeOrder("MARKET", "SELL", targetPrice, quantity);
+        return executeOrder(TransactionType.MARKET, TransactionSide.SELL, targetPrice, quantity);
     }
 
     @Override
@@ -159,11 +161,9 @@ public class CoinbaseTrader extends BaseExchangeTrader {
     }
 
     @Override
-    public boolean limitSell(double targetPrice, double quantity) {
-        return executeOrder("LIMIT", "SELL", targetPrice, quantity);
-    }
+    public boolean limitSell(double targetPrice, double quantity) { return false; }
 
-    private boolean executeOrder(String orderType, String side, double price, double quantity) {
+    private boolean executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity) {
         logger.info("{}: executing {} {} order - Price: {}, Quantity: {}", getCurrency(), orderType, side, price, quantity);
         if (!isConnected) {
             logger.error("Cannot execute order - not connected");
@@ -174,6 +174,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                 .exchange(getExchangeName())
                 .currency(getCurrency())
                 .orderType(orderType)
+                .side(side)
                 .requestedPrice(price)
                 .requestedQuantity(quantity)
                 .build();
@@ -182,8 +183,8 @@ public class CoinbaseTrader extends BaseExchangeTrader {
             ObjectNode orderRequest = objectMapper.createObjectNode()
                     .put("client_order_id", String.valueOf(System.currentTimeMillis()))
                     .put("product_id", getExchangeSymbol())
-                    .put("side", side)
-                    .put("order_type", orderType);
+                    .put("side", side.name())
+                    .put("order_type", orderType.name());
 
             orderRequest.put("base_quantity", String.format("%.8f", quantity));
 

@@ -45,6 +45,90 @@
           "size": 1
         }
       }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "url": "/api/v3/brokerage/orders",
+        "headers": {
+          "Authorization": {
+            "contains": "Bearer"
+          }
+        },
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$.client_order_id",
+            "equalTo": "1111-11111-111111"
+          },
+          {
+            "matchesJsonPath": "$.product_id",
+            "equalTo": "BTC-USD"
+          },
+          {
+            "matchesJsonPath": "$.side",
+            "equalTo": "BUY"
+          },
+          {
+            "matchesJsonPath": "$.order_configuration",
+            "matches": ".*"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "success": true,
+          "order_id": "11111-00000-000000",
+          "product_id": "BTC-USD",
+          "side": "BUY",
+          "client_order_id": "1111-11111-111111"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "url": "/api/v3/brokerage/orders",
+        "headers": {
+          "Authorization": {
+            "contains": "Bearer"
+          }
+        },
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$.client_order_id",
+            "equalTo": "2222-22222-222222"
+          },
+          {
+            "matchesJsonPath": "$.product_id",
+            "equalTo": "BTC-USD"
+          },
+          {
+            "matchesJsonPath": "$.side",
+            "equalTo": "BUY"
+          },
+          {
+            "matchesJsonPath": "$.order_configuration",
+            "matches": ".*"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "success": false,
+          "message": "The order configuration was invalid",
+          "error_details": "Market orders cannot be placed with empty order sizes",
+          "new_order_failure_reason": "UNKNOWN_FAILURE_REASON",
+          "order_configuration": "{{jsonPath request.body '$.order_configuration'}}"
+        }
+      }
     }
   ]
 }

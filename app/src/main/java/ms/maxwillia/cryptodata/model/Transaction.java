@@ -11,7 +11,8 @@ import java.time.ZonedDateTime;
 public class Transaction {
     String exchange;
     String currency;
-    String orderType;
+    TransactionType orderType;
+    TransactionSide side;
     Double requestedPrice;
     Double requestedQuantity;
     @Builder.Default

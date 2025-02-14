@@ -18,6 +18,13 @@
 - [X] Firi REST api - testing
 - [ ] Better price logging
 
+### Trader
+- [ ] Coinbase MarketBuy mocking
+- [ ] Coinbase correct order request
+- [ ] Rework Transaction fields (combined request and exectution price fields + logging)
+- [ ] Coinbase handle successful order
+- [ ] Coinbase handle failed order
+
 ### Arbitrage
 - [ ] Design for detecting arbitrage opportunities
 - [X] Data collection interfaces and parent classes split into distinct collection classes
