@@ -1,6 +1,8 @@
 package ms.maxwillia.cryptodata.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,6 +11,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+@Setter
+@Getter
 public class ExchangeCredentials {
     private static final Logger logger = LoggerFactory.getLogger(ExchangeCredentials.class);
 
@@ -22,11 +26,6 @@ public class ExchangeCredentials {
         this.name = name;
         this.privateKey = privateKey;
     }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getPrivateKey() { return privateKey; }
-    public void setPrivateKey(String privateKey) { this.privateKey = privateKey; }
 
     public static ExchangeCredentials loadFromFile(String filePath) throws IOException {
         ObjectMapper mapper = new ObjectMapper();

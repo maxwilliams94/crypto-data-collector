@@ -1,13 +1,18 @@
 package ms.maxwillia.cryptodata.client;
 
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class BaseExchangeClient {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
+    @Getter
     protected final String exchangeName;
+    @Getter
     protected volatile ClientStatus status;
+    @Getter
     protected String symbol;
+    @Getter
     protected String currency;
 
     public BaseExchangeClient(String exchangeName, String currency) {
@@ -20,23 +25,7 @@ public abstract class BaseExchangeClient {
         return String.format("%s: %s", exchangeName, getSymbol());
     }
 
-    public String getExchangeName() {
-        return exchangeName;
-    }
-
-    public String getSymbol() {
-        return this.symbol;
-    }
-
-    public String getCurrency() {
-        return this.currency;
-    }
-
     abstract protected void setSymbolFromCurrency(String currency);
-
-    public ClientStatus getStatus() {
-        return status;
-    }
 
     protected void setStatus(ClientStatus newStatus) {
         ClientStatus oldStatus = this.status;

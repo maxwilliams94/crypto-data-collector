@@ -2,6 +2,8 @@ package ms.maxwillia.cryptodata.client.trader;
 
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
 import ms.maxwillia.cryptodata.client.ClientStatus;
+import ms.maxwillia.cryptodata.model.TransactionStatus;
+import okhttp3.HttpUrl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,12 +38,16 @@ class CoinbaseTraderTest {
     @BeforeEach
     public void setUp() throws IOException {
         coinbaseTrader = new CoinbaseTrader(TEST_CURRENCY, credentials);
-        coinbaseTrader.setApiRoot(wireMockContainer.getBaseUrl());
+        coinbaseTrader.setApiRoot(HttpUrl.parse(wireMockContainer.getBaseUrl()));
     }
 
     @AfterEach
     public void tearDown() {
         coinbaseTrader = null;
+    }
+
+    @AfterAll
+    public static void tearDownAll() {
         credentials = null;
     }
 
@@ -67,5 +73,41 @@ class CoinbaseTraderTest {
         coinbaseTrader.initialize();
         coinbaseTrader.connect();
         assert coinbaseTrader.isConnected;
+    }
+
+    @Test
+    void testDryMarketBuy() {
+        coinbaseTrader.initialize();
+        coinbaseTrader.connect();
+        var success = coinbaseTrader.marketBuy(0.01, 0.01);
+        assert coinbaseTrader.getTransactions().size() == 1;
+        assert coinbaseTrader.getTransactions().getFirst().getStatus() == TransactionStatus.CREATED;
+        assert success;
+    }
+
+    @Test
+    void testDryBuys() {
+        coinbaseTrader.initialize();
+        coinbaseTrader.connect();
+        var success = coinbaseTrader.marketBuy(0.01, 0.01);
+        coinbaseTrader.marketBuy(0.01, 0.01);
+        assert coinbaseTrader.getTransactions().size() == 2;
+        assert coinbaseTrader.getTransactions().stream()
+                .allMatch(t -> t.getStatus() == TransactionStatus.CREATED);
+        assert success;
+    }
+
+    /*
+    Market buy with trading enabled.
+     */
+    @Test
+    void testMarketBuy() {
+        coinbaseTrader.initialize();
+        coinbaseTrader.enableTrading();
+        coinbaseTrader.connect();
+        var success = coinbaseTrader.marketBuy(0.01, 0.01);
+        assert coinbaseTrader.getTransactions().size() == 1;
+        assert coinbaseTrader.getTransactions().getFirst().getStatus() == TransactionStatus.EXECUTED;
+        assert success;
     }
 }

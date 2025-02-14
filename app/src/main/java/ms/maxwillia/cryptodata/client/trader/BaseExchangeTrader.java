@@ -2,6 +2,7 @@ package ms.maxwillia.cryptodata.client.trader;
 
 import ms.maxwillia.cryptodata.client.BaseExchangeClient;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
+import ms.maxwillia.cryptodata.model.Transaction;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
@@ -14,6 +15,8 @@ import java.security.PrivateKey;
 import java.security.Security;
 import java.security.interfaces.ECPrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class BaseExchangeTrader extends BaseExchangeClient implements ExchangeTrader {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
@@ -21,10 +24,12 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
     protected final ExchangeCredentials credentials;
     protected ECPrivateKey ecPrivateKey;
     protected volatile boolean isConnected = false;
+    protected ArrayList<Transaction> transactions;
 
     public BaseExchangeTrader(String exchangeName, String currency, ExchangeCredentials credentials) {
         super(exchangeName, currency);
         this.credentials = credentials;
+        this.transactions = new ArrayList<>();
     }
 
     public void enableTrading() {
@@ -75,5 +80,13 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
         KeyFactory keyFactory = KeyFactory.getInstance("EC");
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKey.getEncoded());
         ecPrivateKey = (ECPrivateKey) keyFactory.generatePrivate(keySpec);
+    }
+
+    public void addTransaction(Transaction transaction) {
+        transactions.add(transaction);
+    }
+
+    public List<Transaction> getTransactions() {
+        return this.transactions;
     }
 }

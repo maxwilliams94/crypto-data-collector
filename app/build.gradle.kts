@@ -24,6 +24,13 @@ dependencies {
     implementation("org.bouncycastle:bcpkix-jdk18on:1.79")
     implementation("io.github.cdimascio:java-dotenv:5.2.2")
 
+    // Lombok
+    compileOnly("org.projectlombok:lombok:1.18.36")
+    annotationProcessor("org.projectlombok:lombok:1.18.36")
+
+    testCompileOnly("org.projectlombok:lombok:1.18.36")
+    testAnnotationProcessor("org.projectlombok:lombok:1.18.36")
+
     // Jackson for JSON processing
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
 

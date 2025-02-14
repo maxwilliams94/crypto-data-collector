@@ -3,7 +3,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "/api/v3/brokerage/accounts",
+        "url": "/api/v3/brokerage/accounts?limit=1",
         "headers": {
           "Authorization": {
             "contains": "Bearer"
@@ -39,7 +39,10 @@
               "retail_portfolio_id": "f3fc7fce-da1d-57b8-a073-b0bab28bb12f",
               "platform": "ACCOUNT_PLATFORM_CONSUMER"
             }
-          ]
+          ],
+          "has_next": true,
+          "cursor": "9bcb2b74-f6b2-5db1-9330-d39b9875b2c8",
+          "size": 1
         }
       }
     }
