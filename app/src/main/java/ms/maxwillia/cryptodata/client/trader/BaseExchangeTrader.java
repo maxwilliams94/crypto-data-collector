@@ -1,5 +1,6 @@
 package ms.maxwillia.cryptodata.client.trader;
 
+import lombok.Getter;
 import ms.maxwillia.cryptodata.client.BaseExchangeClient;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
 import ms.maxwillia.cryptodata.model.Transaction;
@@ -21,6 +22,8 @@ import java.util.List;
 public abstract class BaseExchangeTrader extends BaseExchangeClient implements ExchangeTrader {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     private boolean canTrade = false;
+    @Getter
+    private boolean previewTrade = true;
     protected final ExchangeCredentials credentials;
     protected ECPrivateKey ecPrivateKey;
     protected volatile boolean isConnected = false;
@@ -39,6 +42,10 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
     public void disableTrading() {
         canTrade = false;
     }
+
+    public void disablePreviewTrading() { previewTrade = false;}
+
+    public void enablePreviewTrading() { previewTrade = true;}
 
     public boolean canTrade() {
         return canTrade;

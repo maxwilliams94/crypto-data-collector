@@ -195,10 +195,11 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         Request request;
 
         Transaction transaction = Transaction.builder()
-                .id(clientOrderId)
+                .id(isPreviewTrade() ? null : clientOrderId)
                 .exchange(getExchangeName())
                 .currency(getCurrency())
                 .orderType(orderType)
+                .preview(isPreviewTrade())
                 .side(side)
                 .price(price)
                 .quantity(quantity)
@@ -225,15 +226,21 @@ public class CoinbaseTrader extends BaseExchangeTrader {
             }
             orderRequest.set("order_configuration", orderConfiguration);
 
-                HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/orders");
-                String jwt = generateJWT("POST", getSchemelessURL(url.toString()));
-                request = new Request.Builder()
-                        .url(url)
-                        .header("Authorization", "Bearer " + jwt)
-                        .post(RequestBody.create(
-                                objectMapper.writeValueAsString(orderRequest),
-                                MediaType.parse("application/json")))
-                        .build();
+            HttpUrl url;
+            if (isPreviewTrade()) {
+                transaction.setPreview(true);
+                url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/orders/preview");
+            } else {
+                url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/orders");
+            }
+            String jwt = generateJWT("POST", getSchemelessURL(url.toString()));
+            request = new Request.Builder()
+                    .url(url)
+                    .header("Authorization", "Bearer " + jwt)
+                    .post(RequestBody.create(
+                            objectMapper.writeValueAsString(orderRequest),
+                            MediaType.parse("application/json")))
+                    .build();
 
         } catch (Exception e) {
             logger.error("Failed to create order request: {}", e.getMessage());
@@ -270,8 +277,19 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                 } else {
                     responseBody = body.string();
                 }
-                    JsonNode orderResponse = objectMapper.readTree(responseBody);
-                    transaction.setResponse(orderResponse.toString());
+                JsonNode orderResponse = objectMapper.readTree(responseBody);
+                transaction.setResponse(orderResponse.toString());
+                if (isPreviewTrade()) {
+                    if (orderResponse.get("errs").isEmpty() && orderResponse.get("warning").isEmpty()) {
+                        transaction.setStatus(TransactionStatus.PREVIEW_SUCCESS);
+                    } else if (!orderResponse.get("errs").isEmpty()) {
+                        logger.error("Preview order with errors: {}", orderResponse.get("errs").toString());
+                        transaction.setStatus(TransactionStatus.PREVIEW_ERROR);
+                    } else {
+                        logger.error("Preview order with warnings: {}", orderResponse.get("warning").toString());
+                        transaction.setStatus(TransactionStatus.PREVIEW_WARNING);
+                    }
+                } else {
                     if (orderResponse.get("success").asBoolean()) {
                         transaction.setExchangeId(orderResponse.get("order_id").asText("unknown"));
                         transaction.setStatus(TransactionStatus.EXECUTED);
@@ -288,21 +306,20 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                                 transaction.getId(),
                                 transaction.getResponse());
                     }
+                }
                 addTransaction(transaction);
                 return transaction;
 
             } catch (IOException e) {
                 logger.error("Failed to execute {} {} order: {}", orderType, side, e.getMessage());
                 transaction.setStatus(TransactionStatus.REQUEST_ERROR);
-                addTransaction(transaction);
-                return transaction;
             }
              catch (Exception e) {
                 logger.error("Failed to parse order response: {}", e.getMessage());
                 transaction.setStatus(TransactionStatus.EXECUTION_ERROR);
-                addTransaction(transaction);
-                return transaction;
             }
+    addTransaction(transaction);
+    return transaction;
     }
 
     @Override

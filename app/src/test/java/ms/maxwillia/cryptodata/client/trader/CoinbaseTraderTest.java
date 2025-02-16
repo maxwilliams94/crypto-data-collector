@@ -20,9 +20,9 @@ import org.wiremock.integrations.testcontainers.WireMockContainer;
 
 class CoinbaseTraderTest {
     private static final String TEST_CURRENCY = "BTC";
-    private static final String TEST_EXCHANGE_NAME = "Coinbase";
     private static final String SUCCESS_CLIENT_ORDER_ID = "1111-11111-111111";
     private static final String FAIL_CLIENT_ORDER_ID = "2222-22222-222222";
+    private static final String WARNING_CLIENT_ORDER_ID = "3333-33333-333333";
 
     private CoinbaseTrader coinbaseTrader;
     private static ExchangeCredentials credentials;
@@ -122,6 +122,7 @@ class CoinbaseTraderTest {
     void testMarketBuy() {
         coinbaseTrader.initialize();
         coinbaseTrader.enableTrading();
+        coinbaseTrader.disablePreviewTrading();
         coinbaseTrader.connect();
         var transaction = coinbaseTrader.marketBuy(0.01, 0.01, SUCCESS_CLIENT_ORDER_ID);
         assert coinbaseTrader.getTransactions().size() == 1;
@@ -135,6 +136,7 @@ class CoinbaseTraderTest {
     void testMarketBuyExecuteFail() {
         coinbaseTrader.initialize();
         coinbaseTrader.enableTrading();
+        coinbaseTrader.disablePreviewTrading();
         coinbaseTrader.connect();
         var transaction = coinbaseTrader.marketBuy(0.01, 0.01, FAIL_CLIENT_ORDER_ID);
         assert coinbaseTrader.getTransactions().size() == 1;
@@ -142,5 +144,47 @@ class CoinbaseTraderTest {
         assert transaction.getStatus().equals(TransactionStatus.EXECUTION_ERROR);
         assert transaction.getResponse() != null;
         assert transaction.getId().equals(FAIL_CLIENT_ORDER_ID);
+    }
+
+    @Test
+    void testMarketPreviewBuy() {
+        coinbaseTrader.initialize();
+        coinbaseTrader.enableTrading();
+        coinbaseTrader.enablePreviewTrading();
+        coinbaseTrader.connect();
+        var transaction = coinbaseTrader.marketBuy(0.01, 0.01, SUCCESS_CLIENT_ORDER_ID);
+        assert coinbaseTrader.getTransactions().size() == 1;
+        assert transaction.getStatus().equals(TransactionStatus.PREVIEW_SUCCESS);
+        assert transaction.isPreview();
+        assert transaction.getResponse() != null;
+        assert transaction.getExchangeId() == null;
+    }
+
+    @Test
+    void testMarketPreviewBuyWithErrors() {
+        coinbaseTrader.initialize();
+        coinbaseTrader.enableTrading();
+        coinbaseTrader.enablePreviewTrading();
+        coinbaseTrader.connect();
+        var transaction = coinbaseTrader.marketBuy(0.01, 0.01, FAIL_CLIENT_ORDER_ID);
+        assert coinbaseTrader.getTransactions().size() == 1;
+        assert transaction.isPreview();
+        assert transaction.getStatus().equals(TransactionStatus.PREVIEW_ERROR);
+        assert transaction.getResponse() != null;
+        assert transaction.getExchangeId() == null;
+    }
+
+    @Test
+    void testMarketPreviewBuyWithWarnings() {
+        coinbaseTrader.initialize();
+        coinbaseTrader.enableTrading();
+        coinbaseTrader.enablePreviewTrading();
+        coinbaseTrader.connect();
+        var transaction = coinbaseTrader.marketBuy(0.01, 0.01, WARNING_CLIENT_ORDER_ID);
+        assert coinbaseTrader.getTransactions().size() == 1;
+        assert transaction.isPreview();
+        assert transaction.getStatus().equals(TransactionStatus.PREVIEW_WARNING);
+        assert transaction.getResponse() != null;
+        assert transaction.getExchangeId() == null;
     }
 }

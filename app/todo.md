@@ -19,14 +19,33 @@
 - [ ] Better price logging
 
 ### Trader
-- [ ] Coinbase MarketBuy mocking
-- [ ] Booking/trading interfaces and parent classes
-- [ ] Coinbase correct order request
-- [ ] Preview order request for testing
+- [X] Booking/trading interfaces and parent classes
 - [X] Rework Transaction fields (combined request and execution price fields + logging)
-- [ ] Coinbase handle successful order
-- [ ] Coinbase handle failed order
-- [ ] Coinbase get order fill details post execution for accurate accounting
+
+#### Coinbase
+- [X] MarketBuy
+- [X] MarketSell
+- [X] Authentication
+- [X] MarketBuy mocking
+- [X] correct order request
+- [X] Preview order request for testing
+- [X] handle successful order
+- [X] handle failed order
+- [ ] requestMapper
+- [ ] responseMappr
+- [ ] get order fill details post execution for accurate accounting
+
+#### Firi
+- [ ] MarketBuy
+- [ ] MarketSell
+- [ ] Authentication
+- [ ] Preview order request for testing
+- [ ] handle successful order
+- [ ] handle failed order
+- [ ] requestMapper
+- [ ] responseMapper
+- [ ] get order fill details post execution for accurate accounting
+
 
 ### Arbitrage
 - [ ] Design for detecting arbitrage opportunities
@@ -36,8 +55,7 @@
 - [ ] Arbitrage runner class launching collection instances and empty booking instances
 - [ ] arbitrage detection
 - [ ] Test runs with empty trading empty arbitrage opportunities
-- [ ] Coinbase Authentication
-- [ ] Firi Authentication
+- [X] Coinbase Authentication
 
 ## Features
 - [ ] Allow choice of exchange(s) to be defined at runtime

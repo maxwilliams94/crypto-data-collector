@@ -22,6 +22,10 @@ public interface ExchangeTrader extends ExchangeClient {
 
     public void disableTrading();
 
+    public void enablePreviewTrading();
+
+    public void disablePreviewTrading();
+
     public boolean canTrade();
 
     public HashMap<String, Double> getBalances();

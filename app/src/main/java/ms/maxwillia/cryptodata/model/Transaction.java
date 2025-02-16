@@ -17,6 +17,8 @@ public class Transaction {
     String currency;
     TransactionType orderType;
     TransactionSide side;
+    @Builder.Default
+    boolean preview = false;
     Double price;
     Double quantity;
     @Builder.Default

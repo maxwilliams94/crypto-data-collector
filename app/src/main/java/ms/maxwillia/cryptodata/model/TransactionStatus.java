@@ -5,5 +5,8 @@ public enum TransactionStatus {
     REQUESTED,
     EXECUTED,
     REQUEST_ERROR,
-    EXECUTION_ERROR
+    EXECUTION_ERROR,
+    PREVIEW_ERROR,
+    PREVIEW_WARNING,
+    PREVIEW_SUCCESS
 }
