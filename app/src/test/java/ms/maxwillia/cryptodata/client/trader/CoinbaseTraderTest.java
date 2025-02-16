@@ -21,6 +21,8 @@ import org.wiremock.integrations.testcontainers.WireMockContainer;
 class CoinbaseTraderTest {
     private static final String TEST_CURRENCY = "BTC";
     private static final String TEST_EXCHANGE_NAME = "Coinbase";
+    private static final String SUCCESS_CLIENT_ORDER_ID = "1111-11111-111111";
+    private static final String FAIL_CLIENT_ORDER_ID = "2222-22222-222222";
 
     private CoinbaseTrader coinbaseTrader;
     private static ExchangeCredentials credentials;
@@ -81,36 +83,36 @@ class CoinbaseTraderTest {
     void testDryMarketBuy() {
         coinbaseTrader.initialize();
         coinbaseTrader.connect();
-        var success = coinbaseTrader.marketBuy(0.01, 0.01);
+        var transaction = coinbaseTrader.marketBuy(0.01, 0.01);
         assert coinbaseTrader.getTransactions().size() == 1;
         assert coinbaseTrader.getTransactions().getFirst().getStatus() == TransactionStatus.CREATED;
         assert coinbaseTrader.getTransactions().getFirst().getSide() == TransactionSide.BUY;
         assert coinbaseTrader.getTransactions().getFirst().getOrderType() == TransactionType.MARKET;
-        assert success;
+        assert transaction.getStatus() == TransactionStatus.CREATED;
     }
 
     @Test
     void testDryMarketSell() {
         coinbaseTrader.initialize();
         coinbaseTrader.connect();
-        var success = coinbaseTrader.marketSell(0.01, 0.01);
+        var transaction = coinbaseTrader.marketSell(0.01, 0.01);
         assert coinbaseTrader.getTransactions().size() == 1;
         assert coinbaseTrader.getTransactions().getFirst().getStatus() == TransactionStatus.CREATED;
         assert coinbaseTrader.getTransactions().getFirst().getSide() == TransactionSide.SELL;
         assert coinbaseTrader.getTransactions().getFirst().getOrderType() == TransactionType.MARKET;
-        assert success;
+        assert transaction.getStatus() == TransactionStatus.CREATED;
     }
 
     @Test
     void testDryBuys() {
         coinbaseTrader.initialize();
         coinbaseTrader.connect();
-        var success = coinbaseTrader.marketBuy(0.01, 0.01);
+        var transaction = coinbaseTrader.marketBuy(0.01, 0.01);
         coinbaseTrader.marketBuy(0.01, 0.01);
         assert coinbaseTrader.getTransactions().size() == 2;
         assert coinbaseTrader.getTransactions().stream()
                 .allMatch(t -> t.getStatus() == TransactionStatus.CREATED);
-        assert success;
+        assert transaction.getStatus() == TransactionStatus.CREATED;
     }
 
     /*
@@ -121,9 +123,11 @@ class CoinbaseTraderTest {
         coinbaseTrader.initialize();
         coinbaseTrader.enableTrading();
         coinbaseTrader.connect();
-        var success = coinbaseTrader.marketBuy(0.01, 0.01);
+        var transaction = coinbaseTrader.marketBuy(0.01, 0.01, SUCCESS_CLIENT_ORDER_ID);
         assert coinbaseTrader.getTransactions().size() == 1;
-        assert coinbaseTrader.getTransactions().getFirst().getStatus() == TransactionStatus.EXECUTED;
-        assert success;
+        assert coinbaseTrader.getTransactions().getFirst().getStatus().equals(TransactionStatus.EXECUTED);
+        assert transaction.getStatus().equals(TransactionStatus.EXECUTED);
+        assert transaction.getResponse() != null;
+        assert transaction.getExchangeId().equals("11111-00000-000000");
     }
 }

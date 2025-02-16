@@ -1,5 +1,6 @@
 package ms.maxwillia.cryptodata.client.trader;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 import java.util.HashMap;
@@ -22,6 +23,9 @@ import ms.maxwillia.cryptodata.model.TransactionSide;
 import ms.maxwillia.cryptodata.model.TransactionStatus;
 import ms.maxwillia.cryptodata.model.TransactionType;
 import okhttp3.*;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 
@@ -145,94 +149,154 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         setStatus(ClientStatus.STOPPED);
     }
 
-    @Override
-    public boolean marketBuy(double targetPrice, double quantity) {
-        return executeOrder(TransactionType.MARKET, TransactionSide.BUY, targetPrice, quantity);
+    public Transaction marketBuy(double targetPrice, double quantity, String clientOrderId) {
+        return executeOrder(TransactionType.MARKET, TransactionSide.BUY, targetPrice, quantity, clientOrderId);
     }
 
     @Override
-    public boolean marketSell(double targetPrice, double quantity) {
-        return executeOrder(TransactionType.MARKET, TransactionSide.SELL, targetPrice, quantity);
+    public Transaction marketBuy(double targetPrice, double quantity) {
+        return executeOrder(TransactionType.MARKET, TransactionSide.BUY, targetPrice, quantity, generateClientOrderId());
+    }
+
+    public Transaction marketSell(double targetPrice, double quantity, String clientOrderId) {
+        return executeOrder(TransactionType.MARKET, TransactionSide.SELL, targetPrice, quantity, clientOrderId);
     }
 
     @Override
-    public boolean limitBuy(double targetPrice, double quantity) {
-        return false;
+    public Transaction marketSell(double targetPrice, double quantity) {
+        return executeOrder(TransactionType.MARKET, TransactionSide.SELL, targetPrice, quantity, generateClientOrderId());
     }
 
     @Override
-    public boolean limitSell(double targetPrice, double quantity) { return false; }
+    @Nullable
+    public Transaction limitBuy(double targetPrice, double quantity) { return null; }
 
-    private boolean executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity) {
+    @Override
+    @Nullable
+    public Transaction limitSell(double targetPrice, double quantity) { return null; }
+
+    /**
+     * Executes an order on the Coinbase exchange.
+     *
+     * @param orderType The type of the order (e.g., MARKET).
+     * @param side The side of the transaction (e.g., BUY or SELL).
+     * @param price The target price for the order (e.g USD).
+     * @param quantity The quantity for the order (e.g., BTC).
+     * @return Transaction if the order was executed successfully, null otherwise.
+     */
+    @Nullable
+    private Transaction executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity, String clientOrderId) {
         logger.info("{}: executing {} {} order - Price: {}, Quantity: {}", getCurrency(), orderType, side, price, quantity);
         if (!isConnected) {
             logger.error("Cannot execute order - not connected");
-            return false;
+            return null;
         }
-        
+
+        Request request;
+
         Transaction transaction = Transaction.builder()
+                .id(clientOrderId)
                 .exchange(getExchangeName())
                 .currency(getCurrency())
                 .orderType(orderType)
                 .side(side)
-                .requestedPrice(price)
-                .requestedQuantity(quantity)
+                .price(price)
+                .quantity(quantity)
                 .build();
 
         try {
             ObjectNode orderRequest = objectMapper.createObjectNode()
-                    .put("client_order_id", String.valueOf(System.currentTimeMillis()))
+                    .put("client_order_id", clientOrderId)
                     .put("product_id", getExchangeSymbol())
-                    .put("side", side.name())
-                    .put("order_type", orderType.name());
+                    .put("side", side.name());
 
-            orderRequest.put("base_quantity", String.format("%.8f", quantity));
+            ObjectNode orderConfiguration = objectMapper.createObjectNode();
+            switch (orderType) {
+                case MARKET -> {
+                    ObjectNode marketConfig = objectMapper.createObjectNode();
+                    marketConfig.put("quote_size", String.format("%.8f", price));
+                    marketConfig.put("base_size", String.format("%.8f", quantity));
+                    orderConfiguration.set("market_market_ioc", marketConfig);
+                }
+                default -> {
+                    throw new UnsupportedOperationException(
+                            "Order type not implemented: " + orderType);
+                }
+            }
+            orderRequest.set("order_configuration", orderConfiguration);
 
-            HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/orders");
-            String jwt = generateJWT("POST", getSchemelessURL(url.toString()));
-            Request request = new Request.Builder()
-                    .url(url)
-                    .header("Authorization", "Bearer " + jwt)
-                    .post(RequestBody.create(
-                            objectMapper.writeValueAsString(orderRequest),
-                            MediaType.parse("application/json")))
-                    .build();
+                HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/orders");
+                String jwt = generateJWT("POST", getSchemelessURL(url.toString()));
+                request = new Request.Builder()
+                        .url(url)
+                        .header("Authorization", "Bearer " + jwt)
+                        .post(RequestBody.create(
+                                objectMapper.writeValueAsString(orderRequest),
+                                MediaType.parse("application/json")))
+                        .build();
+
+        } catch (Exception e) {
+            logger.error("Failed to create order request: {}", e.getMessage());
+            transaction.setStatus(TransactionStatus.REQUEST_ERROR);
+            addTransaction(transaction);
+            return transaction;
+        }
 
             if (!canTrade()) {
                 logger.info("Trading disabled: transaction will not be executed");
                 addTransaction(transaction);
-                return true;
+                return transaction;
             }
 
-            transaction.requestTimeNow();
             try (Response response = httpClient.newCall(request).execute()) {
-                transaction.executedTimeNow();
                 transaction.setResponse(response.toString());
                 if (!response.isSuccessful()) {
                     String errorBody = response.body() != null ? response.body().string() : "No error details";
                     logger.error("Order execution failed - Status: {}, Error: {}",
                             response.code(), errorBody);
-                    if (response.code() >= 400 && response.code() < 500){
+                    if (response.code() >= 400 && response.code() < 500) {
                         transaction.setStatus(TransactionStatus.REQUEST_ERROR);
                     } else {
                         transaction.setStatus(TransactionStatus.EXECUTION_ERROR);
                     }
                     addTransaction(transaction);
-                    return false;
+                    return transaction;
                 }
 
-                String responseBody = response.body() != null ? response.body().string() : "{}";
-                JsonNode orderResponse = objectMapper.readTree(responseBody);
-                logger.info("Order executed successfully - Order ID: {}",
-                        orderResponse.path("order_id").asText("unknown"));
-                return true;
+                String responseBody;
+                ResponseBody body = response.body();
+                if (body == null) {
+                    responseBody = "";
+                } else {
+                    responseBody = body.string();
+                }
+                    JsonNode orderResponse = objectMapper.readTree(responseBody);
+                    transaction.setResponse(orderResponse.toString());
+                    if (orderResponse.get("success").asBoolean()) {
+                        transaction.setExchangeId(orderResponse.get("order_id").asText("unknown"));
+                        transaction.setStatus(TransactionStatus.EXECUTED);
+                    } else {
+                        transaction.setStatus(TransactionStatus.EXECUTION_ERROR);
+                        transaction.setExchangeId("n/a");
+                    }
+                    logger.info("Order: {} executed successfully with exchangeId: {}",
+                            transaction.getId(),
+                            transaction.getExchangeId());
+                addTransaction(transaction);
+                return transaction;
+
+            } catch (IOException e) {
+                logger.error("Failed to execute {} {} order: {}", orderType, side, e.getMessage());
+                transaction.setStatus(TransactionStatus.REQUEST_ERROR);
+                addTransaction(transaction);
+                return transaction;
             }
-        } catch (Exception e) {
-            logger.error("Failed to execute {} {} order: {}", orderType, side, e.getMessage());
-            transaction.setStatus(TransactionStatus.REQUEST_ERROR);
-            addTransaction(transaction);
-            return false;
-        }
+             catch (Exception e) {
+                logger.error("Failed to parse order response: {}", e.getMessage());
+                transaction.setStatus(TransactionStatus.EXECUTION_ERROR);
+                addTransaction(transaction);
+                return transaction;
+            }
     }
 
     @Override
@@ -271,6 +335,10 @@ public class CoinbaseTrader extends BaseExchangeTrader {
             logger.error("Failed to execute withdrawal: {}", e.getMessage());
             return false;
         }
+    }
+
+    private static String generateClientOrderId() {
+        return UUID.randomUUID().toString();
     }
 
     @Override

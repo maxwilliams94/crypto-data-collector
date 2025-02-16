@@ -19,6 +19,7 @@ public abstract class BaseExchangeClient {
         this.status = null;
         this.exchangeName = exchangeName;
         this.currency = currency;
+        setSymbolFromCurrency(currency);
     }
 
     public String toString() {

@@ -20,17 +20,19 @@
 
 ### Trader
 - [ ] Coinbase MarketBuy mocking
+- [ ] Booking/trading interfaces and parent classes
 - [ ] Coinbase correct order request
-- [ ] Rework Transaction fields (combined request and exectution price fields + logging)
+- [ ] Preview order request for testing
+- [X] Rework Transaction fields (combined request and execution price fields + logging)
 - [ ] Coinbase handle successful order
 - [ ] Coinbase handle failed order
+- [ ] Coinbase get order fill details post execution for accurate accounting
 
 ### Arbitrage
 - [ ] Design for detecting arbitrage opportunities
 - [X] Data collection interfaces and parent classes split into distinct collection classes
 - [ ] Make sure that new interfaces are being used
 - [ ] `offerTick` compatibility with `BlockingQueue` and `AtomicDouble`
-- [ ] Booking/trading interfaces and parent classes
 - [ ] Arbitrage runner class launching collection instances and empty booking instances
 - [ ] arbitrage detection
 - [ ] Test runs with empty trading empty arbitrage opportunities
