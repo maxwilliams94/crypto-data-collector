@@ -130,4 +130,17 @@ class CoinbaseTraderTest {
         assert transaction.getResponse() != null;
         assert transaction.getExchangeId().equals("11111-00000-000000");
     }
+
+    @Test
+    void testMarketBuyExecuteFail() {
+        coinbaseTrader.initialize();
+        coinbaseTrader.enableTrading();
+        coinbaseTrader.connect();
+        var transaction = coinbaseTrader.marketBuy(0.01, 0.01, FAIL_CLIENT_ORDER_ID);
+        assert coinbaseTrader.getTransactions().size() == 1;
+        assert coinbaseTrader.getTransactions().getFirst().getStatus().equals(TransactionStatus.EXECUTION_ERROR);
+        assert transaction.getStatus().equals(TransactionStatus.EXECUTION_ERROR);
+        assert transaction.getResponse() != null;
+        assert transaction.getId().equals(FAIL_CLIENT_ORDER_ID);
+    }
 }

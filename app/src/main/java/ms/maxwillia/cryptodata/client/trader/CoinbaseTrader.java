@@ -279,9 +279,15 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                         transaction.setStatus(TransactionStatus.EXECUTION_ERROR);
                         transaction.setExchangeId("n/a");
                     }
-                    logger.info("Order: {} executed successfully with exchangeId: {}",
-                            transaction.getId(),
-                            transaction.getExchangeId());
+                    if (transaction.getStatus().equals(TransactionStatus.EXECUTED)) {
+                        logger.info("Order: {} executed successfully with exchangeId: {}",
+                                transaction.getId(),
+                                transaction.getExchangeId());
+                    } else {
+                        logger.error("Unsuccessful execution of Order: {}. Message: {}}",
+                                transaction.getId(),
+                                transaction.getResponse());
+                    }
                 addTransaction(transaction);
                 return transaction;
 
