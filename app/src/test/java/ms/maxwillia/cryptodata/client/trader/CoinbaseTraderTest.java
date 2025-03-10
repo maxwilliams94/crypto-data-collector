@@ -23,6 +23,9 @@ class CoinbaseTraderTest {
     private static final String SUCCESS_CLIENT_ORDER_ID = "1111-11111-111111";
     private static final String FAIL_CLIENT_ORDER_ID = "2222-22222-222222";
     private static final String WARNING_CLIENT_ORDER_ID = "3333-33333-333333";
+    private static final double SUCCESS_PREVIEW_QUOTE_SIZE = 10.0;
+    private static final double ERRORS_PREVIEW_QUOTE_SIZE = 20.0;
+    private static final double WARNINGS_PREVIEW_QUOTE_SIZE = 30.0;
 
     private CoinbaseTrader coinbaseTrader;
     private static ExchangeCredentials credentials;
@@ -152,12 +155,12 @@ class CoinbaseTraderTest {
         coinbaseTrader.enableTrading();
         coinbaseTrader.enablePreviewTrading();
         coinbaseTrader.connect();
-        var transaction = coinbaseTrader.marketBuy(0.01, 0.01, SUCCESS_CLIENT_ORDER_ID);
+        var transaction = coinbaseTrader.marketBuy(SUCCESS_PREVIEW_QUOTE_SIZE, 1, "1111-11111-111111");
         assert coinbaseTrader.getTransactions().size() == 1;
         assert transaction.getStatus().equals(TransactionStatus.PREVIEW_SUCCESS);
         assert transaction.isPreview();
         assert transaction.getResponse() != null;
-        assert transaction.getExchangeId() == null;
+        assert transaction.getExchangeId().equals("preview_id");
     }
 
     @Test
@@ -166,12 +169,12 @@ class CoinbaseTraderTest {
         coinbaseTrader.enableTrading();
         coinbaseTrader.enablePreviewTrading();
         coinbaseTrader.connect();
-        var transaction = coinbaseTrader.marketBuy(0.01, 0.01, FAIL_CLIENT_ORDER_ID);
+        var transaction = coinbaseTrader.marketBuy(ERRORS_PREVIEW_QUOTE_SIZE, 1, "1111-11111-111111");
         assert coinbaseTrader.getTransactions().size() == 1;
         assert transaction.isPreview();
         assert transaction.getStatus().equals(TransactionStatus.PREVIEW_ERROR);
         assert transaction.getResponse() != null;
-        assert transaction.getExchangeId() == null;
+        assert transaction.getExchangeId().equals("preview_id");
     }
 
     @Test
@@ -180,11 +183,11 @@ class CoinbaseTraderTest {
         coinbaseTrader.enableTrading();
         coinbaseTrader.enablePreviewTrading();
         coinbaseTrader.connect();
-        var transaction = coinbaseTrader.marketBuy(0.01, 0.01, WARNING_CLIENT_ORDER_ID);
+        var transaction = coinbaseTrader.marketBuy(WARNINGS_PREVIEW_QUOTE_SIZE, 1, "1111-11111-111111");
         assert coinbaseTrader.getTransactions().size() == 1;
         assert transaction.isPreview();
         assert transaction.getStatus().equals(TransactionStatus.PREVIEW_WARNING);
         assert transaction.getResponse() != null;
-        assert transaction.getExchangeId() == null;
+        assert transaction.getExchangeId().equals("preview_id");
     }
 }

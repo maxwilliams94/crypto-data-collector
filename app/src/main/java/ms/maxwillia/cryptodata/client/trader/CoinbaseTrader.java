@@ -2,8 +2,7 @@ package ms.maxwillia.cryptodata.client.trader;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Map;
-import java.util.HashMap;
+import java.util.*;
 import java.time.Instant;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -17,6 +16,7 @@ import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import ms.maxwillia.cryptodata.client.ClientStatus;
+import ms.maxwillia.cryptodata.client.mapper.coinbase.CoinbaseOrderMapper;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
 import ms.maxwillia.cryptodata.model.Transaction;
 import ms.maxwillia.cryptodata.model.TransactionSide;
@@ -25,7 +25,6 @@ import ms.maxwillia.cryptodata.model.TransactionType;
 import okhttp3.*;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 
@@ -186,7 +185,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
      */
     @Nullable
     private Transaction executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity, String clientOrderId) {
-        logger.info("{}: executing {} {} order - Price: {}, Quantity: {}", getCurrency(), orderType, side, price, quantity);
+        logger.info("{}: executing {} {} {} order - Price: {}, Quantity: {}", getCurrency(), isPreviewTrade() ? "preview" : "", orderType, side, price, quantity);
         if (!isConnected) {
             logger.error("Cannot execute order - not connected");
             return null;
@@ -195,7 +194,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         Request request;
 
         Transaction transaction = Transaction.builder()
-                .id(isPreviewTrade() ? null : clientOrderId)
+                .id(clientOrderId)
                 .exchange(getExchangeName())
                 .currency(getCurrency())
                 .orderType(orderType)
@@ -207,16 +206,18 @@ public class CoinbaseTrader extends BaseExchangeTrader {
 
         try {
             ObjectNode orderRequest = objectMapper.createObjectNode()
-                    .put("client_order_id", clientOrderId)
                     .put("product_id", getExchangeSymbol())
                     .put("side", side.name());
+            if (!isPreviewTrade()) {
+                    orderRequest.put("client_order_id", clientOrderId);
+            }
 
             ObjectNode orderConfiguration = objectMapper.createObjectNode();
             switch (orderType) {
                 case MARKET -> {
                     ObjectNode marketConfig = objectMapper.createObjectNode();
-                    marketConfig.put("quote_size", String.format("%.8f", price));
-                    marketConfig.put("base_size", String.format("%.8f", quantity));
+                    marketConfig.put("quote_size", Double.toString(price));
+                    marketConfig.put("base_size", Double.toString(quantity));
                     orderConfiguration.set("market_market_ioc", marketConfig);
                 }
                 default -> {
@@ -256,70 +257,53 @@ public class CoinbaseTrader extends BaseExchangeTrader {
             }
 
             try (Response response = httpClient.newCall(request).execute()) {
-                transaction.setResponse(response.toString());
-                if (!response.isSuccessful()) {
-                    String errorBody = response.body() != null ? response.body().string() : "No error details";
-                    logger.error("Order execution failed - Status: {}, Error: {}",
-                            response.code(), errorBody);
-                    if (response.code() >= 400 && response.code() < 500) {
-                        transaction.setStatus(TransactionStatus.REQUEST_ERROR);
+                    transaction.setResponse(response.toString());
+                    String responseBody;
+                    ResponseBody body = response.body();
+                    if (body == null) {
+                        responseBody = null;
                     } else {
-                        transaction.setStatus(TransactionStatus.EXECUTION_ERROR);
+                        responseBody = body.string();
                     }
-                    addTransaction(transaction);
-                    return transaction;
-                }
+                    var responseMapper = new CoinbaseOrderMapper(transaction);
+                    JsonNode orderResponse = objectMapper.readTree(responseBody);
+                    transaction = responseMapper.map(orderResponse);
+                    if (!response.isSuccessful()) {
+                        logger.error("Order execution failed - Status: {}, Error: {}",
+                                response.code(), responseMapper.getErrorDetails(orderResponse));
+                        if (response.code() >= 400 && response.code() < 500) {
+                            transaction.setStatus(TransactionStatus.REQUEST_ERROR);
+                        } else {
+                            transaction.setStatus(TransactionStatus.EXECUTION_ERROR);
+                        }
+                        addTransaction(transaction);
+                        return transaction;
+                    }
 
-                String responseBody;
-                ResponseBody body = response.body();
-                if (body == null) {
-                    responseBody = "";
-                } else {
-                    responseBody = body.string();
+                    if (responseMapper.isError(orderResponse)) {
+                        var errorDetails = responseMapper.getErrorDetails(orderResponse);
+                        logger.error("Order execution ({}) failed - Error: {}", transaction.getId() ,errorDetails);
+                        transaction.setStatus(isPreviewTrade() ? TransactionStatus.PREVIEW_ERROR : TransactionStatus.EXECUTION_ERROR);
+                    } else {
+                        if (responseMapper.isWarning(orderResponse)) {
+                            logger.warn("Order execution ({}) returned a warning: {}", transaction.getId(), orderResponse.get("warning").toString());
+                            transaction.setStatus(TransactionStatus.PREVIEW_WARNING);
+                        } else {
+                            transaction.setStatus(isPreviewTrade() ? TransactionStatus.PREVIEW_SUCCESS : TransactionStatus.EXECUTED);
+                            logger.info("Order: {} executed successfully with exchangeId: {}",
+                                    transaction.getId(),
+                                    isPreviewTrade() ? "preview" : transaction.getExchangeId());
+                        }
+                    }
+                } catch (IOException e) {
+                    logger.error("Failed to execute {} {} order: {}", orderType, side, e.getMessage());
                 }
-                JsonNode orderResponse = objectMapper.readTree(responseBody);
-                transaction.setResponse(orderResponse.toString());
-                if (isPreviewTrade()) {
-                    if (orderResponse.get("errs").isEmpty() && orderResponse.get("warning").isEmpty()) {
-                        transaction.setStatus(TransactionStatus.PREVIEW_SUCCESS);
-                    } else if (!orderResponse.get("errs").isEmpty()) {
-                        logger.error("Preview order with errors: {}", orderResponse.get("errs").toString());
-                        transaction.setStatus(TransactionStatus.PREVIEW_ERROR);
-                    } else {
-                        logger.error("Preview order with warnings: {}", orderResponse.get("warning").toString());
-                        transaction.setStatus(TransactionStatus.PREVIEW_WARNING);
-                    }
-                } else {
-                    if (orderResponse.get("success").asBoolean()) {
-                        transaction.setExchangeId(orderResponse.get("order_id").asText("unknown"));
-                        transaction.setStatus(TransactionStatus.EXECUTED);
-                    } else {
-                        transaction.setStatus(TransactionStatus.EXECUTION_ERROR);
-                        transaction.setExchangeId("n/a");
-                    }
-                    if (transaction.getStatus().equals(TransactionStatus.EXECUTED)) {
-                        logger.info("Order: {} executed successfully with exchangeId: {}",
-                                transaction.getId(),
-                                transaction.getExchangeId());
-                    } else {
-                        logger.error("Unsuccessful execution of Order: {}. Message: {}}",
-                                transaction.getId(),
-                                transaction.getResponse());
-                    }
-                }
-                addTransaction(transaction);
-                return transaction;
-
-            } catch (IOException e) {
-                logger.error("Failed to execute {} {} order: {}", orderType, side, e.getMessage());
-                transaction.setStatus(TransactionStatus.REQUEST_ERROR);
-            }
-             catch (Exception e) {
-                logger.error("Failed to parse order response: {}", e.getMessage());
-                transaction.setStatus(TransactionStatus.EXECUTION_ERROR);
-            }
-    addTransaction(transaction);
-    return transaction;
+                 catch (Exception e) {
+                     logger.error("Failed to parse order response: {}", e.getMessage());
+                     transaction.setStatus(TransactionStatus.EXECUTION_ERROR);
+                 }
+        addTransaction(transaction);
+        return transaction;
     }
 
     @Override

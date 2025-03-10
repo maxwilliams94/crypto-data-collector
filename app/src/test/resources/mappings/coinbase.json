@@ -71,7 +71,13 @@
           "order_id": "11111-00000-000000",
           "product_id": "BTC-USD",
           "side": "BUY",
-          "client_order_id": "1111-11111-111111"
+          "client_order_id": "1111-11111-111111",
+          "order_configuration":
+            {"market_market_ioc":
+              {"quote_size": 100.00,
+                "base_size": 0.001
+              }
+            }
         }
       }
     },
@@ -103,8 +109,8 @@
           "order_configuration":
           {
             "market_market_ioc": {
-              "quote_size": "0",
-              "base_size": "0"
+              "quote_size": 0,
+              "base_size": 0
             }
           }
         }
@@ -121,7 +127,15 @@
         },
         "bodyPatterns": [
           {
-            "matchesJsonPath": "$[?(@.client_order_id == '1111-11111-111111')]"
+            "matchesJsonPath": {
+              "expression": "$.order_configuration",
+              "equalToJson": {
+                "market_market_ioc": {
+                  "quote_size": "10.0",
+                  "base_size": "1.0"
+                }
+              }
+            }
           }
         ]
       },
@@ -131,15 +145,24 @@
           "Content-Type": "application/json"
         },
         "jsonBody": {
-          "order_total": "100.00",
+          "order_total": "10.00",
           "commission_total": "0.50",
           "errs": [],
           "warning": [],
-          "quote_size": "100.00",
-          "base_size": "0.001",
+          "quote_size": 10.00,
+          "base_size": 0.001,
           "best_bid": "41000.00",
           "best_ask": "41100.00",
-          "is_max": false
+          "is_max": false,
+          "order_margin_total": "string",
+          "leverage": "2.0",
+          "long_leverage": "string",
+          "short_leverage": "string",
+          "slippage": "string",
+          "preview_id": "preview_id",
+          "current_liquidation_buffer": "string",
+          "projected_liquidation_buffer": "string",
+          "max_leverage": "string"
         }
       }
     },
@@ -154,7 +177,15 @@
         },
         "bodyPatterns": [
           {
-            "matchesJsonPath": "$[?(@.client_order_id == '2222-22222-222222')]"
+            "matchesJsonPath": {
+              "expression": "$.order_configuration",
+              "equalToJson": {
+                "market_market_ioc": {
+                  "quote_size": "20.0",
+                  "base_size": "1.0"
+                }
+              }
+            }
           }
         ]
       },
@@ -164,15 +195,24 @@
           "Content-Type": "application/json"
         },
         "jsonBody": {
-          "order_total": "100.00",
+          "order_total": "20.00",
           "commission_total": "0.50",
           "errs": ["UNKNOWN_PREVIEW_FAILURE_REASON"],
           "warning": [],
-          "quote_size": "100.00",
-          "base_size": "0.001",
+          "quote_size": 20.00,
+          "base_size": 0.001,
           "best_bid": "41000.00",
           "best_ask": "41100.00",
-          "is_max": false
+          "is_max": false,
+          "order_margin_total": "string",
+          "leverage": "2.0",
+          "long_leverage": "string",
+          "short_leverage": "string",
+          "slippage": "string",
+          "preview_id": "preview_id",
+          "current_liquidation_buffer": "string",
+          "projected_liquidation_buffer": "string",
+          "max_leverage": "string"
         }
       }
     },
@@ -187,7 +227,15 @@
         },
         "bodyPatterns": [
           {
-            "matchesJsonPath": "$[?(@.client_order_id == '3333-33333-333333')]"
+            "matchesJsonPath": {
+              "expression": "$.order_configuration",
+              "equalToJson": {
+                "market_market_ioc": {
+                  "quote_size": "30.0",
+                  "base_size": "1.0"
+                }
+              }
+            }
           }
         ]
       },
@@ -197,15 +245,24 @@
           "Content-Type": "application/json"
         },
         "jsonBody": {
-          "order_total": "100.00",
+          "order_total": "30.00",
           "commission_total": "0.50",
           "errs": [],
           "warning": ["UNKNOWN"],
-          "quote_size": "100.00",
-          "base_size": "0.001",
+          "quote_size": 30.00,
+          "base_size": 0.001,
           "best_bid": "41000.00",
           "best_ask": "41100.00",
-          "is_max": false
+          "is_max": false,
+          "order_margin_total": "string",
+          "leverage": "2.0",
+          "long_leverage": "string",
+          "short_leverage": "string",
+          "slippage": "string",
+          "preview_id": "preview_id",
+          "current_liquidation_buffer": "string",
+          "projected_liquidation_buffer": "string",
+          "max_leverage": "string"
         }
       }
     }

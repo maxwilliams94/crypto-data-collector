@@ -31,9 +31,11 @@
 - [X] Preview order request for testing
 - [X] handle successful order
 - [X] handle failed order
-- [ ] requestMapper
-- [ ] responseMappr
+- [ ] ~~requestMapper~~
+- [X] responseMapper
+  - [X] market orders
 - [ ] get order fill details post execution for accurate accounting
+- [ ] CLI/test bed for coinbase trader
 
 #### Firi
 - [ ] MarketBuy
@@ -65,6 +67,7 @@
 - [X] File name for CSV storage from serial time to ISO time
 
 ## Clean-up/Refactor
+- [ ] use Money class for all currency values
 - [ ] Reconnection logic / implementation 
 - [ ] States/ClientStatus needs cleaning up
 - [ ] Events can be stored within the client or logged without updating the status
