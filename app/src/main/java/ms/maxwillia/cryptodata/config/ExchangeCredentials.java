@@ -33,6 +33,7 @@ public class ExchangeCredentials {
     }
 
     public static ExchangeCredentials loadFromFile(Path path) throws IOException {
+        logger.debug("Loading exchange credentials from file: {}", path);
         String content = Files.readString(path);
         ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(content, ExchangeCredentials.class);

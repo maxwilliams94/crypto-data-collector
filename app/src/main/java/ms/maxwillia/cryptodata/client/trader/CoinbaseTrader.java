@@ -44,7 +44,8 @@ public class CoinbaseTrader extends BaseExchangeTrader {
     }
 
     private static String getSchemelessURL(String url) {
-        return url.substring(URI.create(url).getScheme().length() + 3);
+        String noScheme = url.substring(URI.create(url).getScheme().length() + 3);
+        return noScheme.substring(0,noScheme.lastIndexOf('?'));
     }
 
     @Override
@@ -69,6 +70,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                 return false;
             }
             setStatus(ClientStatus.INITIALIZED);
+            logger.debug("Initialized Coinbase trader wih credentials: {}", credentials.getName());
             return true;
         } catch (Exception e) {
             logger.error("Failed to initialize Coinbase trader: {}", e.getMessage());
@@ -120,6 +122,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
 
         try {
             HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/accounts?limit=1");
+            logger.debug("url: {}", url);
             String jwt = generateJWT("GET", getSchemelessURL(url.toString()));
             Request request = new Request.Builder()
                     .url(url)
