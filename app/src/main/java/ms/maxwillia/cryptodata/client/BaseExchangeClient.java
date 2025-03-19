@@ -4,6 +4,8 @@ import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+
 public abstract class BaseExchangeClient {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     @Getter
@@ -15,6 +17,8 @@ public abstract class BaseExchangeClient {
     @Getter
     protected String currency;
 
+    @Getter
+    private final ArrayList<String> symbols = new ArrayList<String>();
     public BaseExchangeClient(String exchangeName, String currency) {
         this.status = null;
         this.exchangeName = exchangeName;

@@ -24,6 +24,8 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
     @Override
     protected void setSymbolFromCurrency(String currency) {
         this.symbol = currency + "-USD";
+        this.getSymbols().add(currency);
+        this.getSymbols().add("USD");
     }
 
     @Override

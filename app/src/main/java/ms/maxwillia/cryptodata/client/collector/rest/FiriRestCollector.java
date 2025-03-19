@@ -52,6 +52,9 @@ public class FiriRestCollector extends BaseRestCollector {
     @Override
     protected void setSymbolFromCurrency(String currency) {
         this.symbol = currency + "-NOK";
+        this.getSymbols().add(currency);
+        this.getSymbols().add("USDC");
+        this.getSymbols().add("NOK");
     }
 
     @Override

@@ -48,6 +48,9 @@ public class Main {
         data.put("sub", name);
         data.put("uri", uri);
 
+        System.out.println(header);
+        System.out.println(data);
+
         // Load private key
         PEMParser pemParser = new PEMParser(new StringReader(privateKeyPEM));
         JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");

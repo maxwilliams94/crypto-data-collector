@@ -1,6 +1,7 @@
 package ms.maxwillia.cryptodata.client.trader;
 
 import lombok.Getter;
+import lombok.Setter;
 import ms.maxwillia.cryptodata.client.BaseExchangeClient;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
 import ms.maxwillia.cryptodata.model.Transaction;
@@ -17,6 +18,8 @@ import java.security.Security;
 import java.security.interfaces.ECPrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 public abstract class BaseExchangeTrader extends BaseExchangeClient implements ExchangeTrader {
@@ -28,6 +31,14 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
     protected ECPrivateKey ecPrivateKey;
     protected volatile boolean isConnected = false;
     protected ArrayList<Transaction> transactions;
+
+    @Getter
+    private final HashMap<String, String> accountIds = new HashMap<>();
+    @Getter
+    private final HashMap<String, Double> accountBalances = new HashMap<>();
+    @Getter
+    @Setter
+    private boolean orderSinceLastBalance = false;
 
     public BaseExchangeTrader(String exchangeName, String currency, ExchangeCredentials credentials) {
         super(exchangeName, currency);

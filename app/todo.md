@@ -21,6 +21,7 @@
 ### Trader
 - [X] Booking/trading interfaces and parent classes
 - [X] Rework Transaction fields (combined request and execution price fields + logging)
+- [ ] Redefine BaseExchangeClient to properly define currency pairs as well as a native currency (if relevant)
 
 #### Coinbase
 - [X] MarketBuy

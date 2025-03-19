@@ -26,6 +26,7 @@ import okhttp3.*;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 
 public class CoinbaseTrader extends BaseExchangeTrader {
@@ -44,13 +45,14 @@ public class CoinbaseTrader extends BaseExchangeTrader {
     }
 
     private static String getSchemelessURL(String url) {
-        String noScheme = url.substring(URI.create(url).getScheme().length() + 3);
-        return noScheme.substring(0,noScheme.lastIndexOf('?'));
+        return url.substring(URI.create(url).getScheme().length() + 3);
     }
 
     @Override
     protected void setSymbolFromCurrency(String currency) {
         this.symbol = currency + "-USD";
+        this.getSymbols().add(currency);
+        this.getSymbols().add("USDC");
     }
 
     @Override
@@ -119,11 +121,11 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         if (isConnected) {
             return true;
         }
-
         try {
-            HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/accounts?limit=1");
+            HttpUrl baseUrl = COINBASE_API_ROOT.resolve("/api/v3/brokerage/accounts");
+            HttpUrl url = baseUrl.newBuilder().addQueryParameter("limit", "1").build();
             logger.debug("url: {}", url);
-            String jwt = generateJWT("GET", getSchemelessURL(url.toString()));
+            String jwt = generateJWT("GET", getSchemelessURL(baseUrl.toString()));
             Request request = new Request.Builder()
                     .url(url)
                     .header("Authorization", "Bearer " + jwt)
@@ -230,16 +232,16 @@ public class CoinbaseTrader extends BaseExchangeTrader {
             }
             orderRequest.set("order_configuration", orderConfiguration);
 
-            HttpUrl url;
+            HttpUrl baseUrl;
             if (isPreviewTrade()) {
                 transaction.setPreview(true);
-                url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/orders/preview");
+                baseUrl = COINBASE_API_ROOT.resolve("/api/v3/brokerage/orders/preview");
             } else {
-                url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/orders");
+                baseUrl = COINBASE_API_ROOT.resolve("/api/v3/brokerage/orders");
             }
-            String jwt = generateJWT("POST", getSchemelessURL(url.toString()));
+            String jwt = generateJWT("POST", getSchemelessURL(baseUrl.toString()));
             request = new Request.Builder()
-                    .url(url)
+                    .url(baseUrl)
                     .header("Authorization", "Bearer " + jwt)
                     .post(RequestBody.create(
                             objectMapper.writeValueAsString(orderRequest),
@@ -351,43 +353,97 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         return UUID.randomUUID().toString();
     }
 
-    @Override
-    public HashMap<String, Double> getBalances() {
-        HashMap<String, Double> balances = new HashMap<>();
-        if (!isConnected) {
-            logger.error("Cannot fetch balances - not connected");
-            return balances;
-        }
-
-        try {
-            HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/accounts");
-            String jwt = generateJWT("GET", getSchemelessURL(url.toString()));
-            Request request = new Request.Builder()
-                    .url(COINBASE_API_ROOT + "/api/v3/brokerage/accounts")
-                    .header("Authorization", "Bearer " + jwt)
-                    .build();
-
-            try (Response response = httpClient.newCall(request).execute()) {
-                if (!response.isSuccessful()) {
-                    logger.error("Failed to fetch balances - Status: {}", response.code());
-                    return balances;
+    public boolean findAccountIds() {
+        logger.info("Finding account ids for currencies: {}", String.join(", ", getSymbols()));
+        String cursor = null;
+        HttpUrl baseUrl = COINBASE_API_ROOT.resolve("/api/v3/brokerage/accounts");
+        while (this.getAccountIds().size() < getSymbols().size()) {
+            try {
+                HttpUrl.Builder urlBuilder = COINBASE_API_ROOT.newBuilder()
+                        .addPathSegments("api/v3/brokerage/accounts")
+                        .addQueryParameter("limit", "100");
+                if (cursor != null) {
+                    urlBuilder.addQueryParameter("cursor", cursor);
                 }
+                HttpUrl url = urlBuilder.build();
+                String jwt = generateJWT("GET", getSchemelessURL(baseUrl.toString()));
+                Request request = new Request.Builder()
+                        .url(url)
+                        .header("Authorization", "Bearer " + jwt)
+                        .build();
 
-                JsonNode accountsData = objectMapper.readTree(response.body().string());
-                JsonNode accounts = accountsData.path("accounts");
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) {
+                        logger.error("Failed to fetch account ids - Status: {}", response.code());
+                        return false;
+                    }
 
-                if (accounts.isArray()) {
-                    for (JsonNode account : accounts) {
-                        String currency = account.path("currency").asText();
-                        double available = account.path("available_balance")
-                                .path("value").asDouble(0.0);
-                        balances.put(currency, available);
+                    JsonNode accountsData = objectMapper.readTree(response.body().string());
+                    JsonNode accounts = accountsData.path("accounts");
+
+                    if (accounts.isArray()) {
+                        for (JsonNode account : accounts) {
+                            String currency = account.path("currency").asText();
+                            String accountId = account.path("uuid").asText();
+                            if (getSymbols().contains(currency)) {
+                                this.getAccountIds().put(currency, accountId);
+                                this.getAccountBalances().put(currency, 0.0);
+                                logger.info("Found account id for {}: {}", currency, accountId);
+                            }
+                        }
+                    }
+                    if (accountsData.get("has_next").asBoolean()) {
+                        cursor = accountsData.get("cursor").asText();
                     }
                 }
+            } catch (Exception e) {
+                logger.error("Failed to fetch account ids: {}", e.getMessage());
+                return false;
             }
-        } catch (Exception e) {
-            logger.error("Failed to fetch balances: {}", e.getMessage());
         }
-        return balances;
+        logger.info("Found {} account ids", this.getAccountIds().size());
+        return this.getAccountIds().size() == getSymbols().size();
+    }
+
+    @Override
+    public HashMap<String, Double> getBalances() {
+        if (!isConnected) {
+            logger.error("Cannot fetch balances - not connected");
+            return new HashMap<>();
+        }
+
+        if (isOrderSinceLastBalance()) {
+            return getAccountBalances();
+        }
+        if (getAccountIds().size() != getSymbols().size()) {
+            if (!findAccountIds()) {
+                throw new IllegalStateException("Failed to find account ids for all currencies");
+            }
+        }
+        for (String currency : getAccountBalances().keySet()) {
+            try {
+                HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/accounts/" + getAccountIds().get(currency));
+                String jwt = generateJWT("GET", getSchemelessURL(url.toString()));
+                Request request = new Request.Builder()
+                        .url(url)
+                        .header("Authorization", "Bearer " + jwt)
+                        .build();
+
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (!response.isSuccessful()) {
+                        logger.error("Failed to fetch balances - Status: {}", response.code());
+                        throw new IllegalStateException("Failed to fetch balances");
+                    }
+
+                    JsonNode accountData = objectMapper.readTree(response.body().string());
+                    JsonNode account = accountData.path("account");
+                    getAccountBalances().put(currency, account.at("/available_balance/value").asDouble());
+                }
+            } catch (Exception e) {
+                logger.error("Failed to fetch balances: {}", e.getMessage());
+            }
+        }
+        setOrderSinceLastBalance(true);
+        return getAccountBalances();
     }
 }
