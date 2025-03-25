@@ -23,6 +23,9 @@ dependencies {
     implementation("com.nimbusds:nimbus-jose-jwt:10.0.1")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.79")
     implementation("io.github.cdimascio:java-dotenv:5.2.2")
+    // Money
+    implementation("javax.money:money-api:1.1")
+    implementation("org.javamoney:moneta:1.4.2")
 
     // Lombok
     compileOnly("org.projectlombok:lombok:1.18.36")

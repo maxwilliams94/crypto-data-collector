@@ -10,16 +10,15 @@ public abstract class BaseExchangeCollector extends BaseExchangeClient implement
     protected final BlockingQueue<CryptoTick> dataQueue;
     protected long lastSequenceNumber = -1;
 
-    protected BaseExchangeCollector(String exchangeName, String currency, BlockingQueue<CryptoTick> dataQueue) {
-        super(exchangeName, currency);
+    protected BaseExchangeCollector(String exchangeName, String settlementCurrency, String assetCurrency, String intermediateCurrency, BlockingQueue<CryptoTick> dataQueue) {
+        super(exchangeName, settlementCurrency, assetCurrency, intermediateCurrency);
         this.dataQueue = dataQueue;
-        setSymbolFromCurrency(currency);
-        logger.info("Created client for {} with symbol: {}", exchangeName, currency);
+        logger.info("Created collector for {}", this);
     }
 
     protected void offerTick(CryptoTick tick) {
         if (!dataQueue.offer(tick)) {
-            logger.warn("{}: Queue full, dropping tick for {}", exchangeName, tick.symbol());
+            logger.warn("{}: Queue full, dropping tick for {}", getExchangeName(), tick.symbol());
         }
     }
 
@@ -32,4 +31,8 @@ public abstract class BaseExchangeCollector extends BaseExchangeClient implement
      * Initialize data collection parameters
      */
     protected abstract void initializeDataCollection();
+
+    public String toString() {
+        return String.format("%s: %s: %s %s",this.getClass(), this.getExchangeName(), this.getExchangeTradePair(), this.exchangeIntermediatePair());
+    }
 }

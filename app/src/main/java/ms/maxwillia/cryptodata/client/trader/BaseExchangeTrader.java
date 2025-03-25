@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import ms.maxwillia.cryptodata.client.BaseExchangeClient;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
+import ms.maxwillia.cryptodata.model.CryptoTick;
 import ms.maxwillia.cryptodata.model.Transaction;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMParser;
@@ -21,9 +22,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
 public abstract class BaseExchangeTrader extends BaseExchangeClient implements ExchangeTrader {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
+
+    @Getter
+    private final boolean isNative;
+    @Getter
     private boolean canTrade = false;
     @Getter
     private boolean previewTrade = true;
@@ -31,7 +37,6 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
     protected ECPrivateKey ecPrivateKey;
     protected volatile boolean isConnected = false;
     protected ArrayList<Transaction> transactions;
-
     @Getter
     private final HashMap<String, String> accountIds = new HashMap<>();
     @Getter
@@ -40,10 +45,11 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
     @Setter
     private boolean orderSinceLastBalance = false;
 
-    public BaseExchangeTrader(String exchangeName, String currency, ExchangeCredentials credentials) {
-        super(exchangeName, currency);
+    public BaseExchangeTrader(String exchangeName, String settlementCurrency, String assetCurrency, String intermediateCurrency, ExchangeCredentials credentials, boolean isNative) {
+        super(exchangeName, settlementCurrency, assetCurrency, intermediateCurrency);
         this.credentials = credentials;
         this.transactions = new ArrayList<>();
+        this.isNative = isNative;
     }
 
     public void enableTrading() {
@@ -106,5 +112,9 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
 
     public List<Transaction> getTransactions() {
         return this.transactions;
+    }
+
+    public String toString() {
+        return String.format("%s: %s: %s %s",this.getClass(), this.getExchangeName(), this.getExchangeTradePair(), this.exchangeIntermediatePair());
     }
 }

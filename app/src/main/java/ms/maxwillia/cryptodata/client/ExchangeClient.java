@@ -30,18 +30,18 @@ public interface ExchangeClient {
     String getExchangeName();
 
     /**
-     * Get the currency symbol (standard format)
+     * Get the pair for trading
      *
-     * @return currency
+     * @return currency pair
      */
-    String getCurrency();
+    String getExchangeTradePair();
 
     /**
-     * Get the subscribed symbol (format for the exchange)
+     * Get the symbol for the intermediate pair
      *
-     * @return symbol
+     * @return currency pair
      */
-    String getExchangeSymbol();
+    String exchangeIntermediatePair();
 
     /**
      * Get client status

@@ -34,8 +34,8 @@ public class CoinbaseTrader extends BaseExchangeTrader {
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public CoinbaseTrader(String currency, ExchangeCredentials credentials) {
-        super("Coinbase", currency, credentials);
+    public CoinbaseTrader(String settlementCurrency, String assetCurrency, String intermediateCurrency, ExchangeCredentials credentials) {
+        super("Coinbase", settlementCurrency, assetCurrency, intermediateCurrency, credentials, true);
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
@@ -46,18 +46,6 @@ public class CoinbaseTrader extends BaseExchangeTrader {
 
     private static String getSchemelessURL(String url) {
         return url.substring(URI.create(url).getScheme().length() + 3);
-    }
-
-    @Override
-    protected void setSymbolFromCurrency(String currency) {
-        this.symbol = currency + "-USD";
-        this.getSymbols().add(currency);
-        this.getSymbols().add("USDC");
-    }
-
-    @Override
-    public String getExchangeSymbol() {
-        return symbol;
     }
 
     public void setApiRoot(HttpUrl apiRoot) {
@@ -79,6 +67,16 @@ public class CoinbaseTrader extends BaseExchangeTrader {
             setStatus(ClientStatus.ERROR);
             return false;
         }
+    }
+
+    @Override
+    public String getCurrency() {
+        return "";
+    }
+
+    @Override
+    public String getExchangeSymbol() {
+        return "";
     }
 
     protected String generateJWT(String requestMethod, String requestUrl) throws Exception {
@@ -445,5 +443,13 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         }
         setOrderSinceLastBalance(true);
         return getAccountBalances();
+    }
+
+    public String exchangeTradePair() {
+        return "%s-%s".formatted(getAssetCurrency(), getSettlementCurrency());
+    }
+
+    public String exchangeIntermediatePair() {
+        return "%s-%s".formatted(getIntermediateCurrency(), getSettlementCurrency());
     }
 }

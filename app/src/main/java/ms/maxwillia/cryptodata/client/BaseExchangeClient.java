@@ -3,34 +3,35 @@ package ms.maxwillia.cryptodata.client;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import javax.money.CurrencyUnit;
+import javax.money.Monetary;
 
 import java.util.ArrayList;
 
 public abstract class BaseExchangeClient {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     @Getter
-    protected final String exchangeName;
+    private final String exchangeName;
     @Getter
-    protected volatile ClientStatus status;
-    @Getter
-    protected String symbol;
-    @Getter
-    protected String currency;
+    private volatile ClientStatus status;
 
     @Getter
-    private final ArrayList<String> symbols = new ArrayList<String>();
-    public BaseExchangeClient(String exchangeName, String currency) {
+    private final CurrencyUnit settlementCurrency;
+
+    @Getter
+    private final CurrencyUnit assetCurrency;
+
+    @Getter
+    private final CurrencyUnit intermediateCurrency;
+
+
+    public BaseExchangeClient(String exchangeName, String settlementCurrency, String assetCurrency, String intermediateCurrency) {
         this.status = null;
         this.exchangeName = exchangeName;
-        this.currency = currency;
-        setSymbolFromCurrency(currency);
+        this.settlementCurrency = Monetary.getCurrency(settlementCurrency);
+        this.assetCurrency = Monetary.getCurrency(assetCurrency);
+        this.intermediateCurrency = Monetary.getCurrency(intermediateCurrency);
     }
-
-    public String toString() {
-        return String.format("%s: %s", exchangeName, getSymbol());
-    }
-
-    abstract protected void setSymbolFromCurrency(String currency);
 
     protected void setStatus(ClientStatus newStatus) {
         ClientStatus oldStatus = this.status;
