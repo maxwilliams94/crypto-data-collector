@@ -8,6 +8,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ms.maxwillia.cryptodata.client.BaseExchangeClient;
 import ms.maxwillia.cryptodata.client.collector.BaseExchangeCollector;
 import ms.maxwillia.cryptodata.client.collector.ExchangeCollector;
 import ms.maxwillia.cryptodata.client.collector.rest.FiriRestCollector;
@@ -61,7 +62,7 @@ public class CryptoDataCollector {
         }
     }
 
-    public CryptoDataCollector(String[] symbols) throws IOException {
+    public CryptoDataCollector(String[] assets, String[] intemediates) throws IOException {
         this.dataQueues = new ConcurrentHashMap<>();
         this.storages = new HashMap<>();
         this.queueMetrics = new HashMap<>();
@@ -69,7 +70,7 @@ public class CryptoDataCollector {
         this.processors = new ArrayList<>();
 
         // Create all necessary components for each symbol
-        createExchangeClientsAndComponents(symbols);
+        createExchangeClientsAndComponents(assets, intemediates);
 
         // Start metrics reporting thread
         Thread metricsThread = new Thread(this::reportMetrics, "MetricsReporter");
@@ -81,12 +82,15 @@ public class CryptoDataCollector {
         return String.format("%s_%s", exchange, currency);
     }
 
-    private void createExchangeClientsAndComponents(String[] currencies) throws IOException {
+    private void createExchangeClientsAndComponents(String[] assetCurrencies, String[]intermediateCurrenciees) throws IOException {
         BaseExchangeCollector client;
         String key;
-        for (String currency : currencies) {
+        for (int i = 0; i <= assetCurrencies.length; i++) {
+            String assetCurrency = assetCurrencies[i];
+            String intermediateCurrency = intermediateCurrenciees[i];
+
             for (String exchange : Arrays.asList("Coinbase", "Firi")) {
-                key = generateKey(exchange, currency);
+                key = generateKey(exchange, BaseExchangeClient.getTradePair(assetCurrency, intermediateCurrency));
                 LinkedBlockingQueue<CryptoTick> queue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
                 dataQueues.put(key, queue);
                 queueMetrics.put(key, new QueueMetrics());
@@ -104,9 +108,9 @@ public class CryptoDataCollector {
 
                 // Create client
                 if (exchange.equals("Coinbase")) {
-                    client = new CoinbaseWebSocketCollector(currency, queue);
+                    client = new CoinbaseWebSocketCollector(assetCurrency, null, queue);
                 } else if (exchange.equals("Firi")) {
-                    client = new FiriRestCollector(currency, queue);
+                    client = new FiriRestCollector(assetCurrency, intermediateCurrency, queue);
                 } else {
                     throw new IllegalArgumentException("Unknown exchange: " + exchange);
                 }
@@ -195,8 +199,8 @@ public class CryptoDataCollector {
 
             // Create and start processor thread for this symbol
             Thread processor = new Thread(
-                    () -> processData(generateKey(client.getExchangeName(), client.getCurrency())),
-                    "DataProcessor-%s-%s".formatted(client.getExchangeName(), client.getSymbol()));
+                    () -> processData(generateKey(client.getExchangeName(), client.getTradePair())),
+                    "DataProcessor-%s-%s".formatted(client.getExchangeName(), client.getTradePair()));
             processors.add(processor);
             processor.start();
         }
@@ -232,9 +236,15 @@ public class CryptoDataCollector {
             logger.error("No symbols provided. Please provide at least one symbol.");
             return;
         }
-
+        String[] assets = new String[args.length];
+        String[] intermediates = new String[args.length];
+        for (int i = 0; i < args.length; i++) {
+            String[] parts = args[i].split(";");
+            assets[i] = parts[0];
+            intermediates[i] = parts[1];
+        }
         logger.info("Starting collector with symbols: {}", String.join(", ", args));
-        CryptoDataCollector collector = new CryptoDataCollector(args);
+        CryptoDataCollector collector = new CryptoDataCollector(assets, intermediates);
 
         // Add shutdown hook for graceful shutdown
         Runtime.getRuntime().addShutdownHook(new Thread(collector::stop));

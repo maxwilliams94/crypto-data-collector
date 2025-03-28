@@ -10,8 +10,8 @@ public abstract class BaseExchangeCollector extends BaseExchangeClient implement
     protected final BlockingQueue<CryptoTick> dataQueue;
     protected long lastSequenceNumber = -1;
 
-    protected BaseExchangeCollector(String exchangeName, String settlementCurrency, String assetCurrency, String intermediateCurrency, BlockingQueue<CryptoTick> dataQueue) {
-        super(exchangeName, settlementCurrency, assetCurrency, intermediateCurrency);
+    protected BaseExchangeCollector(String exchangeName, String assetCurrency, String intermediateCurrency, BlockingQueue<CryptoTick> dataQueue) {
+        super(exchangeName, assetCurrency, intermediateCurrency);
         this.dataQueue = dataQueue;
         logger.info("Created collector for {}", this);
     }
@@ -33,6 +33,8 @@ public abstract class BaseExchangeCollector extends BaseExchangeClient implement
     protected abstract void initializeDataCollection();
 
     public String toString() {
-        return String.format("%s: %s: %s %s",this.getClass(), this.getExchangeName(), this.getExchangeTradePair(), this.exchangeIntermediatePair());
+        return String.format("%s: %s: %s %s",this.getClass(), this.getExchangeName(), this.getExchangeTradePair(), this.getExchangeIntermediatePair());
     }
+
+
 }

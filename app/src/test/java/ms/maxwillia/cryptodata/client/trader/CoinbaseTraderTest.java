@@ -44,7 +44,7 @@ class CoinbaseTraderTest {
 
     @BeforeEach
     public void setUp() throws IOException {
-        coinbaseTrader = new CoinbaseTrader(TEST_CURRENCY, credentials);
+        coinbaseTrader = new CoinbaseTrader(TEST_CURRENCY, null, credentials);
         coinbaseTrader.setApiRoot(HttpUrl.parse(wireMockContainer.getBaseUrl()));
     }
 

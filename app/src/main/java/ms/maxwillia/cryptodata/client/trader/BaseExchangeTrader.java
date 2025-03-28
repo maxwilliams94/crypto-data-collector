@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import ms.maxwillia.cryptodata.client.BaseExchangeClient;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
-import ms.maxwillia.cryptodata.model.CryptoTick;
 import ms.maxwillia.cryptodata.model.Transaction;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMParser;
@@ -19,10 +18,8 @@ import java.security.Security;
 import java.security.interfaces.ECPrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 
 public abstract class BaseExchangeTrader extends BaseExchangeClient implements ExchangeTrader {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
@@ -45,8 +42,8 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
     @Setter
     private boolean orderSinceLastBalance = false;
 
-    public BaseExchangeTrader(String exchangeName, String settlementCurrency, String assetCurrency, String intermediateCurrency, ExchangeCredentials credentials, boolean isNative) {
-        super(exchangeName, settlementCurrency, assetCurrency, intermediateCurrency);
+    public BaseExchangeTrader(String exchangeName, String assetCurrency, String intermediateCurrency, ExchangeCredentials credentials, boolean isNative) {
+        super(exchangeName, assetCurrency, intermediateCurrency);
         this.credentials = credentials;
         this.transactions = new ArrayList<>();
         this.isNative = isNative;
@@ -115,6 +112,24 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
     }
 
     public String toString() {
-        return String.format("%s: %s: %s %s",this.getClass(), this.getExchangeName(), this.getExchangeTradePair(), this.exchangeIntermediatePair());
+        return String.format("%s: (%s): %s %s",this.getClass(), this.getExchangeName(), this.getExchangeTradePair(), this.getIntermediateCurrency() != null ? this.getExchangeIntermediatePair() : "");
+    }
+
+    public String getTradePair() {
+        return String.format("%s%s", this.getAssetCurrency(), this.getSettlementCurrency());
+    }
+
+    public String getIntermediatePair() {
+        return String.format("%s%s", this.getAssetCurrency().getCurrencyCode(), this.getIntermediateCurrency().getCurrencyCode());
+    }
+
+    public List<String> getCurrencies() {
+        List<String> currencies = new ArrayList<>();
+        currencies.add(this.getAssetCurrency().getCurrencyCode());
+        currencies.add(this.getSettlementCurrency().getCurrencyCode());
+        if (this.getIntermediateCurrency() != null) {
+            currencies.add(this.getIntermediateCurrency().getCurrencyCode());
+        }
+        return currencies;
     }
 }

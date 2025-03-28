@@ -11,32 +11,25 @@ import java.util.concurrent.BlockingQueue;
 
 import ms.maxwillia.cryptodata.model.CryptoTick;
 
+import javax.money.Monetary;
+
+
 public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implements ExchangeWebSocketClient {
     private static final String COINBASE_WS_URL = "wss://advanced-trade-ws.coinbase.com";
     private final ObjectMapper objectMapper = new ObjectMapper();
     private WebSocketClient wsClient;
     private double usdRate = 1.0;
 
-    public CoinbaseWebSocketCollector(String symbol, BlockingQueue<CryptoTick> dataQueue) {
-        super("Coinbase", symbol, dataQueue);
+    public CoinbaseWebSocketCollector(String assetCurrency, String intermediateCurrency, BlockingQueue<CryptoTick> dataQueue) {
+        super("Coinbase", assetCurrency, intermediateCurrency, dataQueue);
+        setSettlementCurrency(Monetary.getCurrency("USD"));
     }
 
-    @Override
-    protected void setSymbolFromCurrency(String currency) {
-        this.symbol = currency + "-USD";
-        this.getSymbols().add(currency);
-        this.getSymbols().add("USD");
-    }
 
-    @Override
-    public String getExchangeSymbol() {
-        // Coinbase uses BTC-USD format
-        return symbol;
-    }
 
     @Override
     public void updateUsdRate() {
-        if (getSymbol().contains("USD")) {
+        if (getSettlementCurrency().getCurrencyCode().contains("USD")) {
             usdRate = 1.0;
         } else {
             // TODO: Implement
@@ -51,6 +44,26 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
     @Override
     public boolean configure() {
         return true;
+    }
+
+    @Override
+    public String getTradePair() {
+        return "";
+    }
+
+    @Override
+    public String getIntermediatePair() {
+        return "";
+    }
+
+    @Override
+    public String getExchangeTradePair() {
+        return "";
+    }
+
+    @Override
+    public String getExchangeIntermediatePair() {
+        return "";
     }
 
     @Override
@@ -108,7 +121,7 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
 
     @Override
     public String getSubscribedSymbol() {
-        return symbol;
+        return getAssetCurrency().getCurrencyCode();
     }
 
     @Override
@@ -148,7 +161,7 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
             setStatus(ClientStatus.STARTING);
             ObjectNode subscribeMessage = createSubscribeMessage();
             wsClient.send(objectMapper.writeValueAsString(subscribeMessage));
-            logger.info("Sent subscription request for symbol: {}", symbol);
+            logger.info("Sent subscription request for symbol: {}", getExchangeTradePair());
         } catch (Exception e) {
             logger.error("Error subscribing to symbols", e);
             setStatus(ClientStatus.ERROR);
@@ -162,7 +175,7 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
         ObjectNode subscribeMessage = objectMapper.createObjectNode();
         subscribeMessage.put("type", "subscribe");
         subscribeMessage.put("channel", "ticker");
-        subscribeMessage.putArray("product_ids").add(symbol.toUpperCase());
+        subscribeMessage.putArray("product_ids").add(getExchangeTradePair());
         return subscribeMessage;
     }
 
@@ -228,7 +241,7 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
             if (!events.isEmpty() && events.get(0).has("subscriptions")) {
                 JsonNode subscriptions = events.get(0).get("subscriptions").get("ticker");
                 if (!subscriptions.isEmpty() &&
-                        subscriptions.get(0).asText().equals(symbol.toUpperCase())) {
+                        subscriptions.get(0).asText().equals(getExchangeTradePair())) {
                     setStatus(ClientStatus.COLLECTING);
                 } else {
                     logger.error("Unexpected subscription response");
@@ -261,9 +274,4 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
         return getStatus() == ClientStatus.COLLECTING && isConnected();
     }
 
-    // Factory method for convenience
-    public static CoinbaseWebSocketCollector forSymbol(BlockingQueue<CryptoTick> dataQueue,
-                                                       String symbol) {
-        return new CoinbaseWebSocketCollector(symbol, dataQueue);
-    }
 }

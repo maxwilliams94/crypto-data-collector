@@ -26,8 +26,8 @@ public abstract class BaseRestCollector extends BaseExchangeCollector implements
     protected long pollingIntervalMs;
     protected static final long DEFAULT_POLLING_INTERVAL_MS = 1000; // 1 second default
 
-    protected BaseRestCollector(String exchangeName, String currency, BlockingQueue<CryptoTick> dataQueue) {
-        super(exchangeName, currency, dataQueue);
+    protected BaseRestCollector(String exchangeName, String assetCurrency, String intermediateCurrency, BlockingQueue<CryptoTick> dataQueue) {
+        super(exchangeName, assetCurrency, intermediateCurrency, dataQueue);
         this.scheduler = Executors.newScheduledThreadPool(2);
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)

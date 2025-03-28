@@ -2,6 +2,8 @@ package ms.maxwillia.cryptodata.client.collector.rest;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
+import lombok.Setter;
 import ms.maxwillia.cryptodata.model.CryptoTick;
 import ms.maxwillia.cryptodata.client.ClientStatus;
 import okhttp3.*;
@@ -16,8 +18,9 @@ import org.slf4j.LoggerFactory;
 
 public class FiriRestCollector extends BaseRestCollector {
     private static final Logger logger = LoggerFactory.getLogger(FiriRestCollector.class);
-    private static final String DEFAULT_FIRI_API_BASE_URL = "https://api.firi.com/v2";
-    private final String baseUrl;
+    @Getter
+    @Setter
+    private String baseUrl;
     private final String FIRI_REST_API_ORDER_BOOK_URL;
     private final String FIRI_REST_API_MARKET_URL;
     private static final String USD_SYMBOL = "USDCNOK";
@@ -31,15 +34,12 @@ public class FiriRestCollector extends BaseRestCollector {
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public FiriRestCollector(String symbol, BlockingQueue<CryptoTick> dataQueue) {
-        this(symbol, dataQueue, DEFAULT_FIRI_API_BASE_URL);
-    }
 
-    public FiriRestCollector(String symbol, BlockingQueue<CryptoTick> dataQueue, String baseUrl) {
-        super("Firi", symbol, dataQueue);
-        this.baseUrl = baseUrl;
-        this.FIRI_REST_API_ORDER_BOOK_URL = String.format("%s/markets/%s/depth", baseUrl, getExchangeSymbol());
-        this.FIRI_REST_API_MARKET_URL = String.format("%s/markets/%s", baseUrl, getExchangeSymbol());
+    public FiriRestCollector(String assetCurrency, String intermediateCurrency, BlockingQueue<CryptoTick> dataQueue) {
+        super("Firi", assetCurrency, intermediateCurrency, dataQueue);
+        this.baseUrl = "https://api.firi.com/v2";
+        this.FIRI_REST_API_ORDER_BOOK_URL = String.format("%s/markets/%s/depth", baseUrl, getExchangeTradePair());
+        this.FIRI_REST_API_MARKET_URL = String.format("%s/markets/%s", baseUrl, getExchangeTradePair());
         this.usdRate = new AtomicReference<>(-1.0);
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
@@ -47,19 +47,6 @@ public class FiriRestCollector extends BaseRestCollector {
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .build();
         this.objectMapper = new ObjectMapper();
-    }
-
-    @Override
-    protected void setSymbolFromCurrency(String currency) {
-        this.symbol = currency + "-NOK";
-        this.getSymbols().add(currency);
-        this.getSymbols().add("USDC");
-        this.getSymbols().add("NOK");
-    }
-
-    @Override
-    public String getExchangeSymbol() {
-        return symbol.replace("-", "");
     }
 
     @Override
@@ -72,6 +59,16 @@ public class FiriRestCollector extends BaseRestCollector {
             setStatus(ClientStatus.ERROR);
             return false;
         }
+    }
+
+    @Override
+    public String getExchangeTradePair() {
+        return "%s-%s".formatted(getAssetCurrency().getCurrencyCode(), getSettlementCurrency().getCurrencyCode());
+    }
+
+    @Override
+    public String getExchangeIntermediatePair() {
+        return "%s-%s".formatted(getAssetCurrency().getCurrencyCode(), getIntermediateCurrency().getCurrencyCode());
     }
 
     @Override
@@ -184,7 +181,7 @@ public class FiriRestCollector extends BaseRestCollector {
             JsonNode asks = data.get("asks");
 
             if (bids.isEmpty() || asks.isEmpty()) {
-                logger.warn("Empty order book for {}", symbol);
+                logger.warn("Empty order book for {}", getExchangeTradePair());
                 return null;
             }
 
@@ -201,7 +198,7 @@ public class FiriRestCollector extends BaseRestCollector {
             JsonNode tickerData = fetchPriceData();
 
             return new CryptoTick(
-                    symbol,              // symbol
+                    getExchangeIntermediatePair(),              // symbol
                     tickerData.get("volume").asDouble(), // volume_24h
                     bestBid.get(0).asDouble(),       // best_bid
                     bestBid.get(1).asDouble(),       // best_bid_quantity

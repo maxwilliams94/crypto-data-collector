@@ -10,8 +10,8 @@ import java.util.concurrent.BlockingQueue;
  * Base implementation for WebSocket clients
  */
 public abstract class BaseWebSocketCollector extends BaseExchangeCollector implements WebSocketCollector {
-    protected BaseWebSocketCollector(String exchangeName, String currency, BlockingQueue<CryptoTick> dataQueue) {
-        super(exchangeName, currency, dataQueue);
+    protected BaseWebSocketCollector(String exchangeName, String assetCurrency, String intermediateCurrency, BlockingQueue<CryptoTick> dataQueue) {
+        super(exchangeName, assetCurrency, intermediateCurrency, dataQueue);
     }
 
     @Override
@@ -30,7 +30,7 @@ public abstract class BaseWebSocketCollector extends BaseExchangeCollector imple
 
     @Override
     public boolean isCollecting() {
-        return isConnected() && status == ClientStatus.COLLECTING;
+        return isConnected() && getStatus() == ClientStatus.COLLECTING;
     }
 
     /**

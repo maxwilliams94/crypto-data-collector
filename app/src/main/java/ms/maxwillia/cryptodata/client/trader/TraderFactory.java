@@ -66,7 +66,7 @@ public class TraderFactory {
 
         ExchangeCredentials credentials = ExchangeCredentials.loadFromFile(Path.of(apiKeyPath).toAbsolutePath());
 
-        return new CoinbaseTrader(currency, credentials);
+        return new CoinbaseTrader(currency, null, credentials);
     }
     
     /**

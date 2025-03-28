@@ -21,7 +21,7 @@
 ### Trader
 - [X] Booking/trading interfaces and parent classes
 - [X] Rework Transaction fields (combined request and execution price fields + logging)
-- [ ] Redefine BaseExchangeClient to properly define currency pairs as well as a native currency (if relevant)
+- [X] Redefine BaseExchangeClient to properly define currency pairs as well as a native currency (if relevant)
 
 #### Coinbase
 - [X] MarketBuy
@@ -38,20 +38,25 @@
 - [ ] get order fill details post execution for accurate accounting
 - [ ] CLI/test bed for coinbase trader
 
+#### CLI
+- [ ] Show transactions
+- [ ] Save transactions to file
+
 #### Firi
-- [ ] MarketBuy
-- [ ] MarketSell
+- [ ] MarketBuy with intermediate sell
+- [ ] MarketSell with intermediate buy
 - [ ] Authentication
 - [ ] Preview order request for testing
 - [ ] handle successful order
 - [ ] handle failed order
-- [ ] requestMapper
+- [ ] ~~requestMapper~~
 - [ ] responseMapper
 - [ ] get order fill details post execution for accurate accounting
 
 
 ### Arbitrage
 - [ ] Design for detecting arbitrage opportunities
+- [ ] Springboot integration
 - [X] Data collection interfaces and parent classes split into distinct collection classes
 - [ ] Make sure that new interfaces are being used
 - [ ] `offerTick` compatibility with `BlockingQueue` and `AtomicDouble`

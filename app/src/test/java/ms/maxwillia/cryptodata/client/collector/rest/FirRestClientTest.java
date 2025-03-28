@@ -3,7 +3,6 @@ package ms.maxwillia.cryptodata.client.collector.rest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ms.maxwillia.cryptodata.client.ClientStatus;
-import ms.maxwillia.cryptodata.client.collector.rest.FiriRestCollector;
 import ms.maxwillia.cryptodata.model.CryptoTick;
 import ms.maxwillia.cryptodata.utils.ReflectionTestUtils;
 import okhttp3.OkHttpClient;
@@ -56,7 +55,8 @@ class FiriRestClientTest {
         dataQueue = new LinkedBlockingQueue<>();
 
         String mockBaseUrl = mockWebServer.url("/").toString().replaceAll("/$", "");
-        client = new FiriRestCollector(TEST_CURRENCY, dataQueue, mockBaseUrl);
+        client = new FiriRestCollector(TEST_CURRENCY, "USDC", dataQueue);
+        client.setBaseUrl(mockBaseUrl);
 
         // Use shorter timeouts for testing
         OkHttpClient testHttpClient = new OkHttpClient.Builder()
@@ -193,7 +193,7 @@ class FiriRestClientTest {
     void testHandleServerError() throws Exception {
         // Override baseUrl to hit error endpoint
         String errorBaseUrl = mockWebServer.url("/error").toString().replaceAll("/$", "");
-        client = new FiriRestCollector(TEST_CURRENCY, dataQueue, errorBaseUrl);
+        client = new FiriRestCollector(TEST_CURRENCY, "USDC", dataQueue);
 
         assertFalse(client.initialize());
         assertEquals(ClientStatus.ERROR, client.getStatus());
@@ -203,7 +203,8 @@ class FiriRestClientTest {
     void testHandleMalformedData() throws Exception {
         // Override baseUrl to hit malformed data endpoint
         String malformedBaseUrl = mockWebServer.url("/malformed").toString().replaceAll("/$", "");
-        client = new FiriRestCollector(TEST_CURRENCY, dataQueue, malformedBaseUrl);
+        client = new FiriRestCollector(TEST_CURRENCY, "USDC", dataQueue);
+        client.setBaseUrl(malformedBaseUrl);
 
         assertTrue(client.initialize());
         assertTrue(client.startDataCollection());

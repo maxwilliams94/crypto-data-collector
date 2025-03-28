@@ -25,8 +25,9 @@ import ms.maxwillia.cryptodata.model.TransactionType;
 import okhttp3.*;
 import org.jetbrains.annotations.Nullable;
 
+import javax.money.Monetary;
+import javax.money.MonetaryAmount;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 
 public class CoinbaseTrader extends BaseExchangeTrader {
@@ -34,8 +35,10 @@ public class CoinbaseTrader extends BaseExchangeTrader {
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public CoinbaseTrader(String settlementCurrency, String assetCurrency, String intermediateCurrency, ExchangeCredentials credentials) {
-        super("Coinbase", settlementCurrency, assetCurrency, intermediateCurrency, credentials, true);
+
+    public CoinbaseTrader(String assetCurrency, String intermediateCurrency, ExchangeCredentials credentials) {
+        super("Coinbase", assetCurrency, intermediateCurrency, credentials, true);
+        setSettlementCurrency(Monetary.getCurrency("USDC"));
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
@@ -67,16 +70,6 @@ public class CoinbaseTrader extends BaseExchangeTrader {
             setStatus(ClientStatus.ERROR);
             return false;
         }
-    }
-
-    @Override
-    public String getCurrency() {
-        return "";
-    }
-
-    @Override
-    public String getExchangeSymbol() {
-        return "";
     }
 
     protected String generateJWT(String requestMethod, String requestUrl) throws Exception {
@@ -188,7 +181,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
      */
     @Nullable
     private Transaction executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity, String clientOrderId) {
-        logger.info("{}: executing {} {} {} order - Price: {}, Quantity: {}", getCurrency(), isPreviewTrade() ? "preview" : "", orderType, side, price, quantity);
+        logger.info("{}: executing {} {} {} order - Price: {}, Quantity: {}", getTradePair(), isPreviewTrade() ? "preview" : "", orderType, side, price, quantity);
         if (!isConnected) {
             logger.error("Cannot execute order - not connected");
             return null;
@@ -199,7 +192,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         Transaction transaction = Transaction.builder()
                 .id(clientOrderId)
                 .exchange(getExchangeName())
-                .currency(getCurrency())
+                .currency(getTradePair())
                 .orderType(orderType)
                 .preview(isPreviewTrade())
                 .side(side)
@@ -209,7 +202,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
 
         try {
             ObjectNode orderRequest = objectMapper.createObjectNode()
-                    .put("product_id", getExchangeSymbol())
+                    .put("product_id", getExchangeTradePair())
                     .put("side", side.name());
             if (!isPreviewTrade()) {
                     orderRequest.put("client_order_id", clientOrderId);
@@ -310,7 +303,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
     }
 
     @Override
-    public boolean walletWithdraw(double amount, String walletAddress) {
+    public boolean walletWithdraw(MonetaryAmount amount, String walletAddress) {
         if (!isConnected) {
             logger.error("Cannot withdraw - not connected");
             return false;
@@ -318,8 +311,8 @@ public class CoinbaseTrader extends BaseExchangeTrader {
 
         try {
             ObjectNode withdrawRequest = objectMapper.createObjectNode()
-                    .put("amount", String.format("%.8f", amount))
-                    .put("currency", getCurrency())
+                    .put("amount", String.format("%.8s", amount.getNumber()))
+                    .put("currency", amount.getCurrency().getCurrencyCode())
                     .put("address", walletAddress);
 
             HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/withdrawals/crypto");
@@ -352,10 +345,10 @@ public class CoinbaseTrader extends BaseExchangeTrader {
     }
 
     public boolean findAccountIds() {
-        logger.info("Finding account ids for currencies: {}", String.join(", ", getSymbols()));
+        logger.info("Finding account ids for currencies: {}", String.join(", ", getCurrencies()));
         String cursor = null;
         HttpUrl baseUrl = COINBASE_API_ROOT.resolve("/api/v3/brokerage/accounts");
-        while (this.getAccountIds().size() < getSymbols().size()) {
+        while (this.getAccountIds().size() < getCurrencies().size()) {
             try {
                 HttpUrl.Builder urlBuilder = COINBASE_API_ROOT.newBuilder()
                         .addPathSegments("api/v3/brokerage/accounts")
@@ -383,7 +376,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                         for (JsonNode account : accounts) {
                             String currency = account.path("currency").asText();
                             String accountId = account.path("uuid").asText();
-                            if (getSymbols().contains(currency)) {
+                            if (getCurrencies().contains(currency)) {
                                 this.getAccountIds().put(currency, accountId);
                                 this.getAccountBalances().put(currency, 0.0);
                                 logger.info("Found account id for {}: {}", currency, accountId);
@@ -400,7 +393,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
             }
         }
         logger.info("Found {} account ids", this.getAccountIds().size());
-        return this.getAccountIds().size() == getSymbols().size();
+        return this.getAccountIds().size() == getCurrencies().size();
     }
 
     @Override
@@ -413,7 +406,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         if (isOrderSinceLastBalance()) {
             return getAccountBalances();
         }
-        if (getAccountIds().size() != getSymbols().size()) {
+        if (getAccountIds().size() != getCurrencies().size()) {
             if (!findAccountIds()) {
                 throw new IllegalStateException("Failed to find account ids for all currencies");
             }
@@ -445,11 +438,13 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         return getAccountBalances();
     }
 
-    public String exchangeTradePair() {
-        return "%s-%s".formatted(getAssetCurrency(), getSettlementCurrency());
+    public String getExchangeTradePair() {
+        return "%s-%s".formatted(getAssetCurrency().getCurrencyCode(), getSettlementCurrency().getCurrencyCode());
     }
 
-    public String exchangeIntermediatePair() {
-        return "%s-%s".formatted(getIntermediateCurrency(), getSettlementCurrency());
+    @Override
+    public String getExchangeIntermediatePair() {
+        return "";
     }
+
 }

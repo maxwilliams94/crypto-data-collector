@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -44,7 +45,7 @@ public class TraderCLI {
                 System.exit(1);
             }
 
-            logger.info("Connected to {} for {}", trader.getExchangeName(), trader.getExchangeSymbol());
+            logger.info("Connected to {} for {}", trader.getExchangeName(), trader.getExchangeTradePair());
             
             // Get account balances
             HashMap<String, Double> balances = trader.getBalances();
@@ -145,7 +146,7 @@ public class TraderCLI {
             
             System.out.printf("Executing market buy for %.2f USD at ~%.2f per unit%n", amount, price);
             var transaction = trader.marketBuy(price, amount);
-            if (transaction.getStatus().equals(TransactionStatus.EXECUTED) || transaction.getStatus().equals(TransactionStatus.PREVIEW_SUCCESS)) {
+            if (trader.canTrade() && (transaction.getStatus().equals(TransactionStatus.EXECUTED) || transaction.getStatus().equals(TransactionStatus.PREVIEW_SUCCESS)) || !trader.canTrade()) {
                 logger.info("Market buy executed successfully");
             } else {
                 logger.info("Market buy failed");
@@ -158,7 +159,7 @@ public class TraderCLI {
     
     private static void executeMarketSell(ExchangeTrader trader, Scanner scanner) {
         try {
-            System.out.printf("Enter %s amount to sell: ", trader.getCurrency());
+            System.out.printf("Enter %s amount to sell: ", trader.getTradePair());
             double amount = Double.parseDouble(scanner.nextLine());
             
             // For market sells, the price is approximate
@@ -166,7 +167,7 @@ public class TraderCLI {
             double price = Double.parseDouble(scanner.nextLine());
             
             System.out.printf("Executing market sell for %.8f %s at ~%.2f per unit%n", 
-                    amount, trader.getCurrency(), price);
+                    amount, trader.getTradePair(), price);
             var transaction = trader.marketSell(price, amount);
 
             if (transaction.getStatus().equals(TransactionStatus.EXECUTED) || transaction.getStatus().equals(TransactionStatus.PREVIEW_SUCCESS)) {

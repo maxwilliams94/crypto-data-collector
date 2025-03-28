@@ -20,12 +20,6 @@ public interface ExchangeCollector extends ExchangeClient {
     void stopDataCollection();
 
     /**
-     * Get the subscribed symbol (standard format)
-     * @return symbol
-     */
-    String getSymbol();
-
-    /**
      * Get the USD-CCY rate for conversion purposes. Only applicable for exchanges that cannot use USD directly.
      */
     void updateUsdRate();

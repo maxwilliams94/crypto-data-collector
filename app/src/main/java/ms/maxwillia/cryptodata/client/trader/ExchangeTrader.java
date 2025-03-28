@@ -3,6 +3,7 @@ package ms.maxwillia.cryptodata.client.trader;
 import ms.maxwillia.cryptodata.client.ExchangeClient;
 import ms.maxwillia.cryptodata.model.Transaction;
 
+import javax.money.MonetaryAmount;
 import java.util.HashMap;
 
 public interface ExchangeTrader extends ExchangeClient {
@@ -16,7 +17,7 @@ public interface ExchangeTrader extends ExchangeClient {
 
     public Transaction limitSell(double targetPrice, double quantity);
 
-    public boolean walletWithdraw(double amount, String walletAddress);
+    public boolean walletWithdraw(MonetaryAmount currency, String walletAddress);
 
     public void enableTrading();
 
