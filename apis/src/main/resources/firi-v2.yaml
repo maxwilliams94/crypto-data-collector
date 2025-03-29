@@ -1,0 +1,471 @@
+openapi: "3.1.0"
+info:
+  title: "Firi Trading API"
+  version: "2.0.0"
+  description: >
+    This API allows you to interact with Firi’s trading system for placing,
+    retrieving, and cancelling orders. The Order endpoints are documented at
+    https://developers.firi.com/#tag/Order.
+servers:
+  - url: "https://api.firi.com/v2"
+    description: "Production server"
+paths:
+  /orders:
+    get:
+      summary: "List Orders"
+      description: "Retrieve a list of orders for the authenticated user."
+      operationId: "listOrders"
+      tags:
+        - "Order"
+      parameters:
+        - name: "status"
+          in: "query"
+          description: "Filter orders by status"
+          required: false
+          schema:
+            type: string
+        - name: "symbol"
+          in: "query"
+          description: "Filter orders by trading symbol"
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "A list of orders"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+        "401":
+          description: "Unauthorized"
+    post:
+      summary: "Create Order"
+      description: "Place a new order."
+      operationId: "createOrder"
+      tags:
+        - "Order"
+      requestBody:
+        description: "New order details"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewOrder"
+      responses:
+        "201":
+          description: "Order successfully created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          description: "Invalid order parameters"
+  /orders/{orderId}:
+    get:
+      summary: "Get Order"
+      description: "Retrieve details of a specific order by its ID."
+      operationId: "getOrder"
+      tags:
+        - "Order"
+      parameters:
+        - name: "orderId"
+          in: "path"
+          description: "Unique identifier for the order"
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Order details"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: "Order not found"
+    delete:
+      summary: "Cancel Order"
+      description: "Cancel an existing order."
+      operationId: "cancelOrder"
+      tags:
+        - "Order"
+      parameters:
+        - name: "orderId"
+          in: "path"
+          description: "Unique identifier for the order to cancel"
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Order cancelled successfully"
+        "404":
+          description: "Order not found"
+  /markets:
+    get:
+      summary: Get available markets
+      description: Retrieve a list of all available markets.
+      tags:
+        - "Markets"
+      responses:
+        '200':
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Market'
+  /markets/{market}:
+    get:
+      summary: Get info about a specific market
+      description: Retrieve detailed information about a specific market.
+      tags:
+        - "Markets"
+      parameters:
+        - name: market
+          in: path
+          required: true
+          description: The market identifier (e.g., BTC-NOK)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Market'
+  /markets/{market}/ticker:
+    get:
+      summary: Get ticker for a specific market
+      description: Retrieve the current ticker information for a specific market.
+      tags:
+        - "Markets"
+      parameters:
+        - name: market
+          in: path
+          required: true
+          description: The market identifier (e.g., BTC-NOK)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticker'
+  /markets/{market}/depth:
+    get:
+      summary: Get order book depth for a market
+      description: Retrieve the order book depth for a specific market.
+      tags:
+        - "Markets"
+      parameters:
+        - name: market
+          in: path
+          required: true
+          description: The market identifier (e.g., BTC-NOK)
+          schema:
+            type: string
+        - name: bids
+          in: query
+          required: false
+          description: Number of bid levels to retrieve
+          schema:
+            type: integer
+            format: int32
+        - name: asks
+          in: query
+          required: false
+          description: Number of ask levels to retrieve
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderBook'
+  /markets/{market}/history:
+    get:
+      summary: Get trade history for a specific market
+      description: Retrieve the trade history for a specific market.
+      tags:
+        - "Markets"
+      parameters:
+        - name: market
+          in: path
+          required: true
+          description: The market identifier (e.g., BTC-NOK)
+          schema:
+            type: string
+        - name: count
+          in: query
+          required: false
+          description: Number of trades to retrieve
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trade'
+  /balance:
+    get:
+      summary: Retrieve account balances
+      description: Fetch the current balances for all currencies in the user's account.
+      tags:
+        - "Balance"
+      security:
+        - HMAC: [ ]
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Balance'
+
+  /{currency}/address:
+    get:
+      summary: Retrieve deposit address for a specific currency
+      description: Fetch the deposit address associated with the specified currency.
+      tags:
+        - "Wallet"
+      security:
+        - HMAC: [ ]
+      parameters:
+        - name: currency
+          in: path
+          required: true
+          description: The currency code (e.g., BTC, ETH)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepositAddress'
+
+  /{currency}/withdraw/pending:
+    get:
+      summary: Retrieve pending withdrawals for a specific currency
+      description: Fetch the list of pending withdrawal transactions for the specified currency.
+      tags:
+        - "Wallet"
+      security:
+        - HMAC: [ ]
+      parameters:
+        - name: currency
+          in: path
+          required: true
+          description: The currency code (e.g., BTC, ETH)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingWithdrawals'
+
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "Unique identifier for the order"
+        symbol:
+          type: string
+          description: "Trading pair symbol (e.g., BTC/NOK)"
+        side:
+          type: string
+          enum: [buy, sell]
+          description: "Order side"
+        price:
+          type: number
+          description: "Order price"
+        quantity:
+          type: number
+          description: "Order quantity"
+        status:
+          type: string
+          description: "Current status of the order"
+        createdAt:
+          type: string
+          format: date-time
+          description: "Timestamp when the order was created"
+    NewOrder:
+      type: object
+      required:
+        - symbol
+        - side
+        - price
+        - quantity
+      properties:
+        symbol:
+          type: string
+          description: "Trading pair symbol (e.g., BTC/NOK)"
+        side:
+          type: string
+          enum: [buy, sell]
+          description: "Order side"
+        price:
+          type: number
+          description: "Order price"
+        quantity:
+          type: number
+          description: "Order quantity"
+    Market:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the market
+        last:
+          type: string
+          description: Last traded price
+        high:
+          type: string
+          description: Highest price in the last 24 hours
+        low:
+          type: string
+          description: Lowest price in the last 24 hours
+        volume:
+          type: string
+          description: Trading volume in the last 24 hours
+        change:
+          type: string
+          description: Price change percentage in the last 24 hours
+    Ticker:
+      type: object
+      properties:
+        bid:
+          type: string
+          description: Current highest bid price
+        ask:
+          type: string
+          description: Current lowest ask price
+        spread:
+          type: string
+          description: Difference between bid and ask prices
+
+    OrderBook:
+      type: object
+      properties:
+        bids:
+          type: array
+          description: List of bid orders
+          items:
+            type: array
+            items:
+              type: string
+        asks:
+          type: array
+          description: List of ask orders
+          items:
+            type: array
+            items:
+              type: string
+
+    Trade:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Trade type (buy or sell)
+        amount:
+          type: string
+          description: Amount traded
+        price:
+          type: string
+          description: Price at which the trade occurred
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the trade occurred
+        total:
+          type: string
+          description: Total value of the trade
+    Balance:
+      type: object
+      properties:
+        currency:
+          type: string
+          description: The currency code (e.g., BTC, ETH)
+        balance:
+          type: string
+          description: The total balance available
+        hold:
+          type: string
+          description: The amount on hold (e.g., in open orders)
+        available:
+          type: string
+          description: The available balance for trading or withdrawal
+
+    DepositAddress:
+      type: object
+      properties:
+        address:
+          type: string
+          description: The deposit address for the specified currency
+
+    PendingWithdrawals:
+      type: object
+      properties:
+        count:
+          type: integer
+          description: The number of pending withdrawals
+        pending:
+          type: array
+          items:
+            type: object
+            description: Details of each pending withdrawal
+            properties:
+              id:
+                type: string
+                description: The unique identifier for the withdrawal
+              amount:
+                type: string
+                description: The amount being withdrawn
+              fee:
+                type: string
+                description: The fee associated with the withdrawal
+              status:
+                type: string
+                description: The current status of the withdrawal
+              created_at:
+                type: string
+                format: date-time
+                description: The timestamp when the withdrawal was created
+              updated_at:
+                type: string
+                format: date-time
+                description: The timestamp when the withdrawal status was last updated
+
+      securitySchemes:
+        HMAC:
+          type: apiKey
+          in: header
+          name: Authorization
+          description: HMAC-encrypted secret key for accessing private endpoints
+

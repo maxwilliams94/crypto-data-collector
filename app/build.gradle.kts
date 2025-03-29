@@ -17,6 +17,8 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":apis"))
+
     // WebSocket client library for real-time data streaming
     implementation("org.java-websocket:Java-WebSocket:1.5.4")
     // JWT Authentication for Coinbase
