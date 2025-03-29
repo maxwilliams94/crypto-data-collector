@@ -32,7 +32,7 @@ class CoinbaseWebSocketClientTest {
     private static final Path TEST_DATA_ROOT = Path.of("src/test/resources/websocket").toAbsolutePath();
     private CoinbaseWebSocketCollector client;
     private BlockingQueue<CryptoTick> dataQueue;
-    private static final String TEST_EXCHANGE_TRADE_PAIR = "BTC-USDC";
+    private static final String TEST_EXCHANGE_TRADE_PAIR = "BTC-USD";
     private static final String TEST_CURRENCY = "BTC";
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private JsonNode testData;

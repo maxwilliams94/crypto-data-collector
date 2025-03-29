@@ -62,7 +62,7 @@ public class CryptoDataCollector {
         }
     }
 
-    public CryptoDataCollector(String[] assets, String[] intemediates) throws IOException {
+    public CryptoDataCollector(String[] assets, String[] intermediates) throws IOException {
         this.dataQueues = new ConcurrentHashMap<>();
         this.storages = new HashMap<>();
         this.queueMetrics = new HashMap<>();
@@ -70,7 +70,7 @@ public class CryptoDataCollector {
         this.processors = new ArrayList<>();
 
         // Create all necessary components for each symbol
-        createExchangeClientsAndComponents(assets, intemediates);
+        createExchangeClientsAndComponents(assets, intermediates);
 
         // Start metrics reporting thread
         Thread metricsThread = new Thread(this::reportMetrics, "MetricsReporter");
@@ -78,20 +78,30 @@ public class CryptoDataCollector {
         metricsThread.start();
     }
 
-    static String generateKey(String exchange, String currency) {
-        return String.format("%s_%s", exchange, currency);
+    static String generateKey(String exchange, String pairKey) {
+        return String.format("%s_%s", exchange, pairKey);
     }
 
-    private void createExchangeClientsAndComponents(String[] assetCurrencies, String[]intermediateCurrenciees) throws IOException {
+    private void createExchangeClientsAndComponents(String[] assetCurrencies, String[]intermediateCurrencies) throws IOException {
         BaseExchangeCollector client;
         String key;
-        for (int i = 0; i <= assetCurrencies.length; i++) {
+        for (int i = 0; i < assetCurrencies.length; i++) {
             String assetCurrency = assetCurrencies[i];
-            String intermediateCurrency = intermediateCurrenciees[i];
+            String intermediateCurrency = intermediateCurrencies[i];
 
             for (String exchange : Arrays.asList("Coinbase", "Firi")) {
-                key = generateKey(exchange, BaseExchangeClient.getTradePair(assetCurrency, intermediateCurrency));
                 LinkedBlockingQueue<CryptoTick> queue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+
+                // Create client
+                if (exchange.equals("Coinbase")) {
+                    client = new CoinbaseWebSocketCollector(assetCurrency, null, queue);
+                } else if (exchange.equals("Firi")) {
+                    client = new FiriRestCollector(assetCurrency, intermediateCurrency, queue);
+                } else {
+                    throw new IllegalArgumentException("Unknown exchange: " + exchange);
+                }
+                clients.add(client);
+                key = generateKey(exchange, client.getTradePair());
                 dataQueues.put(key, queue);
                 queueMetrics.put(key, new QueueMetrics());
 
@@ -105,26 +115,16 @@ public class CryptoDataCollector {
                 CsvStorage storage = new CsvStorage(filename);
                 logger.info("Using CSV file: {}", storage.getFilename());
                 storages.put(key, storage);
-
-                // Create client
-                if (exchange.equals("Coinbase")) {
-                    client = new CoinbaseWebSocketCollector(assetCurrency, null, queue);
-                } else if (exchange.equals("Firi")) {
-                    client = new FiriRestCollector(assetCurrency, intermediateCurrency, queue);
-                } else {
-                    throw new IllegalArgumentException("Unknown exchange: " + exchange);
-                }
-                clients.add(client);
             }
         }
 
     }
 
 
-    private void processData(String symbol) {
-        BlockingQueue<CryptoTick> queue = dataQueues.get(symbol);
-        CsvStorage storage = storages.get(symbol);
-        QueueMetrics metrics = queueMetrics.get(symbol);
+    private void processData(String key) {
+        BlockingQueue<CryptoTick> queue = dataQueues.get(key);
+        CsvStorage storage = storages.get(key);
+        QueueMetrics metrics = queueMetrics.get(key);
         List<CryptoTick> batch = new ArrayList<>(BATCH_SIZE);
         long lastFlushTime = System.currentTimeMillis();
 
@@ -163,7 +163,7 @@ public class CryptoDataCollector {
                 Thread.currentThread().interrupt();
                 break;
             } catch (Exception e) {
-                logger.error("Error processing batch for {}", symbol, e);
+                logger.error("Error processing batch for {}", key, e);
             }
         }
     }
@@ -198,8 +198,9 @@ public class CryptoDataCollector {
             client.startDataCollection();
 
             // Create and start processor thread for this symbol
+            String key = generateKey(client.getExchangeName(), client.getTradePair());
             Thread processor = new Thread(
-                    () -> processData(generateKey(client.getExchangeName(), client.getTradePair())),
+                    () -> processData(key),
                     "DataProcessor-%s-%s".formatted(client.getExchangeName(), client.getTradePair()));
             processors.add(processor);
             processor.start();
@@ -243,7 +244,7 @@ public class CryptoDataCollector {
             assets[i] = parts[0];
             intermediates[i] = parts[1];
         }
-        logger.info("Starting collector with symbols: {}", String.join(", ", args));
+        logger.info("Starting collector with symbols: {} {}", Arrays.toString(assets), Arrays.toString(intermediates));
         CryptoDataCollector collector = new CryptoDataCollector(assets, intermediates);
 
         // Add shutdown hook for graceful shutdown

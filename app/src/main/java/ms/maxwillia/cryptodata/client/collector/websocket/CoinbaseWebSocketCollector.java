@@ -22,7 +22,7 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
 
     public CoinbaseWebSocketCollector(String assetCurrency, String intermediateCurrency, BlockingQueue<CryptoTick> dataQueue) {
         super("Coinbase", assetCurrency, intermediateCurrency, dataQueue);
-        setSettlementCurrency(Monetary.getCurrency("USDC"));
+        setSettlementCurrency(Monetary.getCurrency("USD"));
     }
 
     @Override
@@ -191,6 +191,8 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
                 case "ticker":
                     if (getStatus() == ClientStatus.COLLECTING) {
                         processTicker(node);
+                    } else {
+                        logger.warn("Not in collecting state. Ignore message");
                     }
                     break;
                 case "subscriptions":
@@ -211,7 +213,7 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
             lastSequenceNumber = node.get("sequence_num").asLong();
 
             CryptoTick tick = new CryptoTick(
-                    tickerEvent.get("product_id").asText(),
+                    this.getTradePair(),
                     tickerEvent.get("price").asDouble(),
                     tickerEvent.get("volume_24_h").asDouble(),
                     tickerEvent.get("best_bid").asDouble(),
