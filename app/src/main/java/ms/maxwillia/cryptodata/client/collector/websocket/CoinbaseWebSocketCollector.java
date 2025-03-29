@@ -22,13 +22,11 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
 
     public CoinbaseWebSocketCollector(String assetCurrency, String intermediateCurrency, BlockingQueue<CryptoTick> dataQueue) {
         super("Coinbase", assetCurrency, intermediateCurrency, dataQueue);
-        setSettlementCurrency(Monetary.getCurrency("USD"));
+        setSettlementCurrency(Monetary.getCurrency("USDC"));
     }
 
-
-
     @Override
-    public void updateUsdRate() {
+    public void updateIntemediateRate() {
         if (getSettlementCurrency().getCurrencyCode().contains("USD")) {
             usdRate = 1.0;
         } else {
@@ -38,7 +36,13 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
 
     @Override
     public boolean initialize() {
-        return configure();
+        if (configure()) {
+            setStatus(ClientStatus.INITIALIZED);
+            return true;
+        } else {
+            setStatus(ClientStatus.ERROR);
+            return false;
+        }
     }
 
     @Override
@@ -46,19 +50,10 @@ public class CoinbaseWebSocketCollector extends BaseWebSocketCollector implement
         return true;
     }
 
-    @Override
-    public String getTradePair() {
-        return "";
-    }
-
-    @Override
-    public String getIntermediatePair() {
-        return "";
-    }
 
     @Override
     public String getExchangeTradePair() {
-        return "";
+        return "%s-%s".formatted(getAssetCurrency().getCurrencyCode(), getSettlementCurrency().getCurrencyCode());
     }
 
     @Override

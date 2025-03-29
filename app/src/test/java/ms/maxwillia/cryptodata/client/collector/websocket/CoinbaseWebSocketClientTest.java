@@ -12,7 +12,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import ms.maxwillia.cryptodata.client.ClientStatus;
-import ms.maxwillia.cryptodata.client.collector.websocket.CoinbaseWebSocketCollector;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +32,7 @@ class CoinbaseWebSocketClientTest {
     private static final Path TEST_DATA_ROOT = Path.of("src/test/resources/websocket").toAbsolutePath();
     private CoinbaseWebSocketCollector client;
     private BlockingQueue<CryptoTick> dataQueue;
-    private static final String TEST_SYMBOL = "BTC-USD";
+    private static final String TEST_EXCHANGE_TRADE_PAIR = "BTC-USDC";
     private static final String TEST_CURRENCY = "BTC";
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private JsonNode testData;
@@ -47,7 +46,7 @@ class CoinbaseWebSocketClientTest {
     @BeforeEach
     void setUp() throws IOException {
         dataQueue = new LinkedBlockingQueue<>();
-        client = new CoinbaseWebSocketCollector(TEST_CURRENCY, dataQueue) {
+        client = new CoinbaseWebSocketCollector(TEST_CURRENCY, null, dataQueue) {
             @Override
             protected WebSocketClient createWebSocketClient() {
                 return mockWebSocketClient;
@@ -69,9 +68,8 @@ class CoinbaseWebSocketClientTest {
 
     @Test
     void testInitialStatus() {
-        assertEquals(ClientStatus.INITIALIZED, client.getStatus());
         assertEquals("Coinbase", client.getExchangeName());
-        assertEquals(TEST_SYMBOL, client.getSymbol());
+        assertEquals(TEST_EXCHANGE_TRADE_PAIR, client.getExchangeTradePair());
     }
 
     @Test
@@ -101,7 +99,7 @@ class CoinbaseWebSocketClientTest {
         // Verify the tick was added to the queue
         CryptoTick tick = dataQueue.poll();
         assertNotNull(tick);
-        assertEquals("BTC-USD", tick.symbol());
+        assertEquals(TEST_EXCHANGE_TRADE_PAIR, tick.symbol());
         assertEquals(45000.00, tick.price());
         assertEquals(1000.5, tick.volume_24_h());
         assertEquals(44999.00, tick.best_bid());
@@ -218,7 +216,7 @@ class CoinbaseWebSocketClientTest {
         JsonNode sentProductIds = sentMessage.get("product_ids");
         assertTrue(sentProductIds.isArray());
         assertEquals(1, sentProductIds.size());
-        assertEquals(TEST_SYMBOL, sentProductIds.get(0).asText());
+        assertEquals(TEST_EXCHANGE_TRADE_PAIR, sentProductIds.get(0).asText());
     }
 
     @Test
@@ -284,9 +282,9 @@ class CoinbaseWebSocketClientTest {
 
     @Test
     void testStatusTransitions() throws JsonProcessingException {
-        assertEquals(ClientStatus.INITIALIZED, client.getStatus());
+        assertNull(client.getStatus());
         client.startDataCollection();
-        assertEquals(ClientStatus.INITIALIZED, client.getStatus());
+        assertNotEquals(ClientStatus.ERROR, client.getStatus());
         client.subscribeToMarketData();
         assertEquals(ClientStatus.STARTING, client.getStatus());
         client.handleMessage(objectMapper.writeValueAsString(testData.get("subscriptionMessages").get("subscribeResponse")));

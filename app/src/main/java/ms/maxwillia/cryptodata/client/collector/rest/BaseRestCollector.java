@@ -151,4 +151,6 @@ public abstract class BaseRestCollector extends BaseExchangeCollector implements
     // Abstract methods that must be implemented by concrete classes
     protected abstract JsonNode fetchOrderBook() throws IOException;
     protected abstract CryptoTick processOrderBookData(JsonNode data) throws IOException;
+    protected abstract String getOrderBookUrl();
+    protected abstract String getMarketUrl();
 }

@@ -22,7 +22,7 @@ public interface ExchangeCollector extends ExchangeClient {
     /**
      * Get the USD-CCY rate for conversion purposes. Only applicable for exchanges that cannot use USD directly.
      */
-    void updateUsdRate();
+    void updateIntemediateRate();
 
 
     /**

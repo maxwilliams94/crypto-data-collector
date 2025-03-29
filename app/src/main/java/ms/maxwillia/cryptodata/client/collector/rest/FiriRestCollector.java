@@ -15,21 +15,20 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.money.Monetary;
+
 
 public class FiriRestCollector extends BaseRestCollector {
     private static final Logger logger = LoggerFactory.getLogger(FiriRestCollector.class);
     @Getter
     @Setter
     private String baseUrl;
-    private final String FIRI_REST_API_ORDER_BOOK_URL;
-    private final String FIRI_REST_API_MARKET_URL;
-    private static final String USD_SYMBOL = "USDCNOK";
-    private static final long USDC_RATE_UPDATE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-    protected static final long USD_MAX_STALE_MS = 30 * 60 * 1000; // 30 minutes
+    private static final long INTERMEDIATE_RATE_UPDATE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+    protected static final long INTERMEDIATE_MAX_STALE_MS = 30 * 60 * 1000; // 30 minutes
     private static final int MAX_RETRIES = 3;
     private static final long RETRY_DELAY_MS = 500; // 1 second between retries
 
-    private final AtomicReference<Double> usdRate;
+    private final AtomicReference<Double> intermediateRate;
     private long lastRateUpdateTime;
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -37,10 +36,9 @@ public class FiriRestCollector extends BaseRestCollector {
 
     public FiriRestCollector(String assetCurrency, String intermediateCurrency, BlockingQueue<CryptoTick> dataQueue) {
         super("Firi", assetCurrency, intermediateCurrency, dataQueue);
+        this.setSettlementCurrency(Monetary.getCurrency("NOK"));
         this.baseUrl = "https://api.firi.com/v2";
-        this.FIRI_REST_API_ORDER_BOOK_URL = String.format("%s/markets/%s/depth", baseUrl, getExchangeTradePair());
-        this.FIRI_REST_API_MARKET_URL = String.format("%s/markets/%s", baseUrl, getExchangeTradePair());
-        this.usdRate = new AtomicReference<>(-1.0);
+        this.intermediateRate = new AtomicReference<>(-1.0);
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
@@ -52,8 +50,8 @@ public class FiriRestCollector extends BaseRestCollector {
     @Override
     public boolean configure() {
         try {
-            updateUsdRate();
-            return usdRate.get() > 0;
+            updateIntemediateRate();
+            return intermediateRate.get() > 0;
         } catch (Exception e) {
             logger.error("Error configuring Firi client: {}", e.getMessage());
             setStatus(ClientStatus.ERROR);
@@ -63,12 +61,12 @@ public class FiriRestCollector extends BaseRestCollector {
 
     @Override
     public String getExchangeTradePair() {
-        return "%s-%s".formatted(getAssetCurrency().getCurrencyCode(), getSettlementCurrency().getCurrencyCode());
+        return "%s%s".formatted(getAssetCurrency().getCurrencyCode(), getSettlementCurrency().getCurrencyCode());
     }
 
     @Override
     public String getExchangeIntermediatePair() {
-        return "%s-%s".formatted(getAssetCurrency().getCurrencyCode(), getIntermediateCurrency().getCurrencyCode());
+        return "%s%s".formatted(getIntermediateCurrency().getCurrencyCode(), getSettlementCurrency().getCurrencyCode());
     }
 
     @Override
@@ -91,12 +89,12 @@ public class FiriRestCollector extends BaseRestCollector {
     }
 
     @Override
-    public void updateUsdRate() {
-        if (System.currentTimeMillis() - lastRateUpdateTime < USDC_RATE_UPDATE_INTERVAL_MS) {
+    public void updateIntemediateRate() {
+        if (System.currentTimeMillis() - lastRateUpdateTime < INTERMEDIATE_RATE_UPDATE_INTERVAL_MS) {
             return; // Rate is still fresh
         }
 
-        String url = String.format("%s/markets/%s", baseUrl, USD_SYMBOL);
+        String url = String.format("%s/markets/%s", baseUrl, getExchangeIntermediatePair());
         Request request = new Request.Builder().url(url).build();
 
         for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -120,14 +118,14 @@ public class FiriRestCollector extends BaseRestCollector {
                     throw new IOException("Invalid rate value: " + newRate);
                 }
 
-                usdRate.set(newRate);
+                intermediateRate.set(newRate);
                 lastRateUpdateTime = System.currentTimeMillis();
-                logger.debug("Successfully updated USD/NOK rate to: {}", newRate);
+                logger.debug("Successfully updated {} rate to: {}", getExchangeIntermediatePair(), newRate);
                 return;
 
             } catch (IOException e) {
-                logger.warn("Failed to update USD/NOK rate (attempt {}/{}): {}",
-                        attempt, MAX_RETRIES, e.getMessage());
+                logger.warn("Failed to update {} rate (attempt {}/{}): {}",
+                        this.getExchangeIntermediatePair(), attempt, MAX_RETRIES, e.getMessage());
 
                 try {
                     Thread.sleep(RETRY_DELAY_MS);
@@ -138,7 +136,7 @@ public class FiriRestCollector extends BaseRestCollector {
                 }
             }
         }
-        if (System.currentTimeMillis() - lastRateUpdateTime > USD_MAX_STALE_MS) {
+        if (System.currentTimeMillis() - lastRateUpdateTime > INTERMEDIATE_MAX_STALE_MS) {
             logger.warn("USD rate is too stale.");
             stopDataCollection();
             setStatus(ClientStatus.ERROR);
@@ -148,7 +146,7 @@ public class FiriRestCollector extends BaseRestCollector {
     @Override
     protected JsonNode fetchOrderBook() throws IOException {
         try (Response response = httpClient.newCall(new Request.Builder()
-                        .url(FIRI_REST_API_ORDER_BOOK_URL)
+                        .url(getOrderBookUrl())
                         .build())
                 .execute()) {
 
@@ -198,7 +196,7 @@ public class FiriRestCollector extends BaseRestCollector {
             JsonNode tickerData = fetchPriceData();
 
             return new CryptoTick(
-                    getExchangeIntermediatePair(),              // symbol
+                    getIntermediatePair(),              // symbol
                     tickerData.get("volume").asDouble(), // volume_24h
                     bestBid.get(0).asDouble(),       // best_bid
                     bestBid.get(1).asDouble(),       // best_bid_quantity
@@ -206,7 +204,7 @@ public class FiriRestCollector extends BaseRestCollector {
                     bestAsk.get(1).asDouble(),       // best_ask_quantity
                     System.currentTimeMillis(),       // timestamp
                     tickerData.get("last").asDouble(),// nativePrice (NOK)
-                    usdRate.get()                     // usdRate
+                    intermediateRate.get()                     // intermediateRate
             );
         } catch (Exception e) {
             logger.error("Error processing order book data: {}", e.getMessage());
@@ -214,9 +212,19 @@ public class FiriRestCollector extends BaseRestCollector {
         }
     }
 
+    @Override
+    protected String getOrderBookUrl() {
+        return String.format("%s/markets/%s/depth", baseUrl, getExchangeTradePair());
+    }
+
+    @Override
+    protected String getMarketUrl() {
+        return String.format("%s/markets/%s", baseUrl, getExchangeTradePair());
+    }
+
     private JsonNode fetchPriceData() throws IOException {
         try (Response response = httpClient.newCall(new Request.Builder()
-                        .url(FIRI_REST_API_MARKET_URL)
+                        .url(getMarketUrl())
                         .build())
                 .execute()) {
 
@@ -241,8 +249,8 @@ public class FiriRestCollector extends BaseRestCollector {
     @Override
     protected void initializeDataCollection() {
         try {
-            updateUsdRate();
-            if (usdRate.get() <= 0) {
+            updateIntemediateRate();
+            if (intermediateRate.get() <= 0) {
                 throw new RuntimeException("Invalid USD rate after initialization");
             }
         } catch (Exception e) {
@@ -258,10 +266,10 @@ public class FiriRestCollector extends BaseRestCollector {
         // Schedule regular rate updates
         scheduler.scheduleAtFixedRate(() -> {
             try {
-                updateUsdRate();
+                updateIntemediateRate();
             } catch (Exception e) {
                 logger.error("Error during scheduled rate update: {}", e.getMessage());
             }
-        }, USDC_RATE_UPDATE_INTERVAL_MS, USDC_RATE_UPDATE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+        }, INTERMEDIATE_RATE_UPDATE_INTERVAL_MS, INTERMEDIATE_RATE_UPDATE_INTERVAL_MS, TimeUnit.MILLISECONDS);
     }
 }

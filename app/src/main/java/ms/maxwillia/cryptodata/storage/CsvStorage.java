@@ -42,7 +42,7 @@ public class CsvStorage {
             tick.best_ask_quantity(),
             tick.timestamp(),
             tick.nativePrice(),
-            tick.usdRate()
+            tick.intermediateRate()
         );
         writer.println();
     }

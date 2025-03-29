@@ -37,6 +37,7 @@
   - [X] market orders
 - [ ] get order fill details post execution for accurate accounting
 - [ ] CLI/test bed for coinbase trader
+- [ ] Wallet withdrawal
 
 #### CLI
 - [ ] Show transactions
@@ -80,3 +81,6 @@
 - [ ] Subscription separation from websocket connection/onOpen
 - [ ] Stale USD rate handling -> stop data collection
 - [ ] CoinbaseWebSocketClient - allow websocket URL to be configurable with sensible default
+- [ ] OpenAPI specification for Coinbase
+- [ ] OpenAPI specification for Firi
+- [ ] Implement WebAPI from openapi generated classes

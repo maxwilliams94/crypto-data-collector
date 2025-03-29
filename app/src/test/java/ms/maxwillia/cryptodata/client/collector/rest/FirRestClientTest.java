@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class FiriRestClientTest {
     private static final Path TEST_DATA_ROOT = Path.of("src/test/resources/rest").toAbsolutePath();
     private static final String TEST_CURRENCY = "BTC";
-    private static final String TEST_SYMBOL = "BTC-NOK"; // Not exchange specific
+    private static final String TEST_TRADE_PAIR = "BTCUSDC";
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private MockWebServer mockWebServer;
     private FiriRestCollector client;
@@ -167,12 +167,12 @@ class FiriRestClientTest {
         // Verify we received market data
         CryptoTick tick = dataQueue.poll(1, TimeUnit.SECONDS);
         assertNotNull(tick);
-        assertEquals(TEST_SYMBOL, tick.symbol());
+        assertEquals(TEST_TRADE_PAIR, tick.symbol());
         assertEquals(expectedPrice / expectedUsdRate, tick.price(), 0.0001); // Price in USD
         assertEquals(expectedVolume, tick.volume_24_h());
-        assertEquals(expectedBestBid, tick.best_bid());
+        assertEquals(expectedBestBid / expectedUsdRate, tick.best_bid());
         assertEquals(expectedBestBidQty, tick.best_bid_quantity());
-        assertEquals(expectedBestAsk, tick.best_ask());
+        assertEquals(expectedBestAsk / expectedUsdRate, tick.best_ask());
         assertEquals(expectedBestAskQty, tick.best_ask_quantity());
     }
 
@@ -194,6 +194,7 @@ class FiriRestClientTest {
         // Override baseUrl to hit error endpoint
         String errorBaseUrl = mockWebServer.url("/error").toString().replaceAll("/$", "");
         client = new FiriRestCollector(TEST_CURRENCY, "USDC", dataQueue);
+        client.setBaseUrl(errorBaseUrl);
 
         assertFalse(client.initialize());
         assertEquals(ClientStatus.ERROR, client.getStatus());
