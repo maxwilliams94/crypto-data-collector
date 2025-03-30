@@ -1,0 +1,1713 @@
+openapi: 3.1.1
+info:
+  title: Coinbase API
+  version: "3.0.0"
+  description: Coinbase Advanced Trading API
+servers:
+  - url: https://api.coinbase.com/api/v3
+    description: Coinbase API v3
+
+paths:
+  /brokerage/accounts:
+    get:
+      summary: List Accounts
+      description: Get a list of authenticated Advanced Trade accounts for the current user.
+      tags:
+        - Accounts
+      operationId: listAccounts
+      parameters:
+        - name: limit
+          in: query
+          description: The number of accounts to display per page. By default, displays 49 (max 250). If `has_next` is true, additional pages of accounts are available to be fetched. Use the `cursor` parameter to start on a specified page.
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 49
+            maximum: 250
+        - name: cursor
+          in: query
+          description: For paginated responses, returns all responses that come after this value.
+          required: false
+          schema:
+            type: string
+        - name: retail_portfolio_id
+          in: query
+          description: (Deprecated) Only returns the accounts matching the portfolio ID. Only applicable for legacy keys. CDP keys will default to the key's permissioned portfolio.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListAccountsResponse'
+
+  /brokerage/accounts/{account_uuid}:
+    get:
+      summary: Get Account
+      description: Get information about an account, given an account UUID. Use List Accounts to find account UUIDs.
+      tags:
+        - Accounts
+      operationId: getAccount
+      parameters:
+        - name: account_uuid
+          in: path
+          description: The account's UUID.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAccountResponse'
+
+  /brokerage/best_bid_ask:
+    get:
+      summary: Get Best Bid/Ask
+      description: Get the best bid/ask for all products. A subset of all products can be returned instead by using the product_ids input.
+      tags:
+        - Products
+      operationId: getBestBidAsk
+      parameters:
+        - name: product_ids
+          in: query
+          description: The list of trading pairs (e.g. 'BTC-USD').
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBestBidAskResponse'
+
+  /brokerage/product_book:
+    get:
+      summary: Get Product Book
+      description: Get a list of bids/asks for a single product. The amount of detail shown can be customized with the limit parameter.
+      tags:
+        - Products
+      operationId: getProductBook
+      parameters:
+        - name: product_id
+          in: query
+          description: The trading pair (e.g. 'BTC-USD').
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The number of bid/asks to be returned.
+          required: false
+          schema:
+            type: integer
+            format: int32
+        - name: aggregation_price_increment
+          in: query
+          description: The minimum price intervals at which buy and sell orders are grouped or combined in the order book.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetProductBookResponse'
+
+  /brokerage/products/{product_id}/ticker:
+    get:
+      summary: Get Market Trades
+      description: Get snapshot information by product ID about the last trades (ticks) and best bid/ask.
+      tags:
+        - Market
+      operationId: getMarketTrades
+      parameters:
+        - name: product_id
+          in: path
+          description: The trading pair (e.g. 'BTC-USD').
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The number of trades to be returned.
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - name: start
+          in: query
+          description: The UNIX timestamp indicating the start of the time interval.
+          required: false
+          schema:
+            type: string
+        - name: end
+          in: query
+          description: The UNIX timestamp indicating the end of the time interval.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetMarketTradesResponse'
+  /brokerage/orders:
+    post:
+      summary: Create an order
+      description: Create an order with a specified product_id (asset-pair), side (buy/sell), etc.
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '200':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateOrderResponse'
+  /brokerage/orders/batch_cancel:
+    post:
+      summary: Batch Cancel Orders
+      description: Initiate cancel requests for one or more orders. The maximum number of order_ids that can be cancelled per request is 100.
+      tags:
+        - Orders
+      operationId: batchCancelOrders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchCancelOrdersRequest'
+      responses:
+        '200':
+          description: Successful batch cancel operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchCancelOrdersResponse'
+        '400':
+          description: Invalid arguments
+  /brokerage/orders/historical/batch:
+    get:
+      summary: List Orders
+      description: Get a list of orders filtered by optional query parameters.
+      tags:
+        - Orders
+      operationId: listOrders
+      parameters:
+        - name: order_ids
+          in: query
+          description: ID(s) of order(s)
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+        - name: product_ids
+          in: query
+          description: Optional string of the product ID(s). Defaults to null, or fetch for all products.
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+        - name: product_type
+          in: query
+          description: Returns orders matching this product type. By default, returns all product types.
+          schema:
+            type: string
+            enum:
+              - SPOT
+              - FUTURE
+              - UNKNOWN_PRODUCT_TYPE
+        - name: order_status
+          in: query
+          description: Only returns orders matching the specified order statuses.
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - OPEN
+                - FILLED
+                - CANCELLED
+                - EXPIRED
+                - FAILED
+                - PENDING
+          style: form
+        - name: time_in_forces
+          in: query
+          description: Only orders matching this time in force(s) are returned. Default is to return all time in forces.
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - GTC
+                - GTD
+                - IOC
+                - FOK
+                - UNKNOWN_TIME_IN_FORCE
+          style: form
+        - name: order_types
+          in: query
+          description: Only returns orders matching the specified order types (e.g. MARKET). By default, returns all order types.
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - MARKET
+                - LIMIT
+                - STOP
+                - STOP_LIMIT
+                - UNKNOWN_ORDER_TYPE
+          style: form
+        - name: order_side
+          in: query
+          description: Only returns the orders matching the specified side. By default, returns all sides.
+          schema:
+            type: string
+            enum:
+              - BUY
+              - SELL
+        - name: start_date
+          in: query
+          description: The start date to fetch orders from (inclusive). If provided, only orders created after this date will be returned.
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: The end date to fetch orders from (exclusive). If provided, only orders with creation time before this date will be returned.
+          schema:
+            type: string
+            format: date-time
+        - name: order_placement_source
+          in: query
+          description: Only returns the orders matching this placement source. By default, returns RETAIL_ADVANCED placement source.
+          schema:
+            type: string
+            enum:
+              - RETAIL_ADVANCED
+              - UNKNOWN_PLACEMENT_SOURCE
+        - name: contract_expiry_type
+          in: query
+          description: Only returns the orders matching the contract expiry type. Only applicable if product_type is set to FUTURE.
+          schema:
+            type: string
+        - name: asset_filters
+          in: query
+          description: Only returns the orders where the quote, base or underlying asset matches the provided asset filter(s) (e.g. 'BTC').
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+        - name: retail_portfolio_id
+          in: query
+          description: (Deprecated) Only orders matching this retail portfolio id are returned. Only applicable for legacy keys.
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: The number of orders to display per page. If has_next is true, additional pages of orders are available to be fetched.
+          schema:
+            type: integer
+            format: int32
+        - name: cursor
+          in: query
+          description: For paginated responses, returns all responses that come after this value.
+          schema:
+            type: string
+        - name: sort_by
+          in: query
+          description: Sort results by a field, results use unstable pagination. Default is to sort by creation time.
+          schema:
+            type: string
+            enum:
+              - creation_time
+        - name: user_native_currency
+          in: query
+          description: (Deprecated) Native currency to fetch order with. Default is USD.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrdersResponse'
+
+  /brokerage/orders/historical/fills:
+    get:
+      summary: List Fills
+      description: Get a list of fills filtered by optional query parameters.
+      tags:
+        - Orders
+      parameters:
+        - name: order_ids
+          in: query
+          description: The ID(s) of order(s).
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+        - name: trade_ids
+          in: query
+          description: The ID(s) of the trades of fills.
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+        - name: product_ids
+          in: query
+          description: The ID(s) of the product(s) to filter fills by.
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+        - name: start_sequence_timestamp
+          in: query
+          description: Only fills with a trade time after the specified start date are returned.
+          schema:
+            type: string
+            format: date-time
+        - name: end_sequence_timestamp
+          in: query
+          description: Only fills with a trade time before the specified end date are returned.
+          schema:
+            type: string
+            format: date-time
+        - name: retail_portfolio_id
+          in: query
+          description: (Deprecated) Only fills matching this retail portfolio id are returned. Only applicable for legacy keys. CDP keys will default to the key's permissioned portfolio.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The number of fills to be returned (default is 100).
+          schema:
+            type: integer
+            format: int64
+            default: 100
+        - name: cursor
+          in: query
+          description: For paginated responses, returns all responses that come after this value.
+          schema:
+            type: string
+        - name: sort_by
+          in: query
+          description: Sort results by a field, results use unstable pagination. Default is sort by creation time.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FillsResponse'
+
+  /brokerage/orders/historical/{order_id}:
+    get:
+      summary: Get Order
+      description: Get a single order by order ID.
+      tags:
+        - Orders
+      parameters:
+        - name: order_id
+          in: path
+          description: The ID of the order.
+          required: true
+          schema:
+            type: string
+        - name: client_order_id
+          in: query
+          description: (Deprecated) Client Order ID to fetch the order with.
+          schema:
+            type: string
+        - name: user_native_currency
+          in: query
+          description: (Deprecated) Native currency to fetch order with. Default is `USD`.
+          schema:
+            type: string
+            default: USD
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+  /brokerage/orders/preview:
+    post:
+      summary: Preview an order
+      description: Preview an order to get details before placing it.
+      operationId: previewOrder
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderPreviewRequest'
+      responses:
+        '200':
+          description: Order preview successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderPreviewResponse'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /brokerage/time:
+    get:
+      tags:
+        - Server Information
+      summary: Get Server Time
+      description: Get the current time from the Coinbase Advanced API.
+      operationId: getServerTime
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeResponse'
+        '500':
+          description: Internal server error
+
+  /brokerage/market/product_book:
+    get:
+      tags:
+        - Market
+      summary: Get Public Product Book
+      description: Get a list of bids/asks for a single product. The amount of detail shown can be customized with the limit parameter.
+      operationId: getPublicProductBook
+      parameters:
+        - name: product_id
+          in: query
+          description: The trading pair (e.g. 'BTC-USD').
+          required: true
+          schema:
+            type: string
+            example: "BTC-USD"
+        - name: limit
+          in: query
+          description: The number of bid/asks to be returned.
+          required: false
+          schema:
+            type: integer
+            format: int32
+        - name: aggregation_price_increment
+          in: query
+          description: The minimum price intervals at which buy and sell orders are grouped or combined in the order book.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductBookResponse'
+        '400':
+          description: Bad request
+        '429':
+          description: Rate limit exceeded
+        '500':
+          description: Internal server error
+      security: []  # No authentication required
+
+
+components:
+  schemas:
+    Money:
+      type: object
+      properties:
+        value:
+          type: string
+          description: The numeric amount as a string
+          example: "1.23"
+        currency:
+          type: string
+          description: The currency code
+          example: "BTC"
+      required:
+        - value
+        - currency
+
+    Account:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unique identifier for the account
+          example: "8bfc20d7-f7c6-4422-bf07-8243ca4169fe"
+        name:
+          type: string
+          description: Name of the account
+          example: "BTC Wallet"
+        currency:
+          type: string
+          description: Currency code for the account
+          example: "BTC"
+        available_balance:
+          $ref: '#/components/schemas/Money'
+        default:
+          type: boolean
+          description: Whether this is the default account
+          example: false
+        active:
+          type: boolean
+          description: Whether the account is active
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2021-05-31T09:59:59Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2021-05-31T09:59:59Z"
+        deleted_at:
+          type: string
+          format: date-time
+          description: Deletion timestamp, if applicable
+          example: "2021-05-31T09:59:59Z"
+        type:
+          type: string
+          description: Account type
+          example: "FIAT"
+        ready:
+          type: boolean
+          description: Whether the account is ready for use
+          example: true
+        hold:
+          $ref: '#/components/schemas/Money'
+        retail_portfolio_id:
+          type: string
+          format: uuid
+          description: The portfolio ID associated with this account
+          example: "b87a2d3f-8a1e-49b3-a4ea-402d8c389aca"
+        platform:
+          type: string
+          description: Platform identifier
+          example: "ACCOUNT_PLATFORM_CONSUMER"
+      required:
+        - uuid
+        - name
+        - currency
+        - available_balance
+        - active
+        - type
+        - ready
+
+    ListAccountsResponse:
+      type: object
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Account'
+        has_next:
+          type: boolean
+          description: Whether there are more accounts that can be retrieved
+          example: true
+        cursor:
+          type: string
+          description: Pagination cursor for the next set of results
+          example: "789100"
+        size:
+          type: integer
+          description: Number of accounts returned in this response
+      required:
+        - accounts
+        - has_next
+
+    GetAccountResponse:
+      type: object
+      properties:
+        account:
+          $ref: '#/components/schemas/Account'
+      required:
+        - account
+
+    PriceLevel:
+      type: object
+      properties:
+        price:
+          type: string
+          description: The price level
+          example: "29875.50"
+        size:
+          type: string
+          description: The size at this price level
+          example: "1.25"
+      required:
+        - price
+        - size
+
+    PriceBook:
+      type: object
+      properties:
+        product_id:
+          type: string
+          description: The trading pair identifier
+          example: "BTC-USD"
+        bids:
+          type: array
+          description: List of bid price levels
+          items:
+            $ref: '#/components/schemas/PriceLevel'
+        asks:
+          type: array
+          description: List of ask price levels
+          items:
+            $ref: '#/components/schemas/PriceLevel'
+        time:
+          type: string
+          description: Timestamp of the price book
+          example: "2023-06-15T22:15:30.123456Z"
+      required:
+        - product_id
+        - bids
+        - asks
+        - time
+
+    GetBestBidAskResponse:
+      type: object
+      properties:
+        pricebooks:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceBook'
+      required:
+        - pricebooks
+
+    GetProductBookResponse:
+      type: object
+      properties:
+        pricebook:
+          $ref: '#/components/schemas/PriceBook'
+        last:
+          type: string
+          description: Last traded price
+          example: "29876.50"
+        mid_market:
+          type: string
+          description: Mid-market price
+          example: "29875.75"
+        spread_bps:
+          type: string
+          description: Spread in basis points
+          example: "0.25"
+        spread_absolute:
+          type: string
+          description: Absolute spread value
+          example: "1.50"
+      required:
+        - pricebook
+
+    Trade:
+      type: object
+      properties:
+        trade_id:
+          type: string
+          description: Unique identifier for the trade
+          example: "34b080bf-fcfd-445a-832b-46b5ddc65601"
+        product_id:
+          type: string
+          description: The trading pair identifier
+          example: "BTC-USD"
+        price:
+          type: string
+          description: Trade price
+          example: "140.91"
+        size:
+          type: string
+          description: Trade size
+          example: "4"
+        time:
+          type: string
+          format: date-time
+          description: Time of the trade
+          example: "2021-05-31T09:59:59Z"
+        side:
+          type: string
+          description: Trade side (buy/sell)
+          example: "buy"
+        exchange:
+          type: string
+          description: The exchange where the trade occurred
+          example: "coinbase"
+      required:
+        - trade_id
+        - product_id
+        - price
+        - size
+        - time
+
+    GetMarketTradesResponse:
+      type: object
+      properties:
+        trades:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trade'
+        best_bid:
+          type: string
+          description: Current best bid price
+          example: "291.13"
+        best_ask:
+          type: string
+          description: Current best ask price
+          example: "292.40"
+      required:
+        - trades
+        - best_bid
+        - best_ask
+
+    CreateOrderRequest:
+      type: object
+      required:
+        - client_order_id
+        - product_id
+        - side
+        - order_configuration
+      properties:
+        client_order_id:
+          type: string
+          description: A unique ID provided for the order (used for identification purposes).
+          example: "0000-00000-000000"
+        product_id:
+          type: string
+          description: The trading pair (e.g. 'BTC-USD').
+          example: "BTC-USD"
+        side:
+          type: string
+          description: The side of the market that the order is on.
+          enum:
+            - BUY
+            - SELL
+        order_configuration:
+          type: object
+          description: The configuration of the order (e.g. the order type, size, etc).
+          oneOf:
+            - $ref: '#/components/schemas/MarketMarketIOC'
+            - $ref: '#/components/schemas/SORLimitIOC'
+            - $ref: '#/components/schemas/LimitLimitGTC'
+            - $ref: '#/components/schemas/LimitLimitGTD'
+            - $ref: '#/components/schemas/LimitLimitFOK'
+            - $ref: '#/components/schemas/TWAPLimitGTD'
+            - $ref: '#/components/schemas/StopLimitStopLimitGTC'
+            - $ref: '#/components/schemas/StopLimitStopLimitGTD'
+            - $ref: '#/components/schemas/TriggerBracketGTC'
+            - $ref: '#/components/schemas/TriggerBracketGTD'
+        retail_portfolio_id:
+          type: string
+          description: (Deprecated) The ID of the portfolio to associate the order with. Only applicable for legacy keys.
+          example: "11111111-1111-1111-1111-111111111111"
+        leverage:
+          type: string
+          description: The amount of leverage for the order (default is 1.0).
+          example: "2.0"
+        margin_type:
+          type: string
+          description: Margin Type for this order (default is CROSS).
+          enum:
+            - CROSS
+            - ISOLATED
+        preview_id:
+          type: string
+          description: Preview ID for this order, to associate this order with a preview request
+          example: "b40bbff9-17ce-4726-8b64-9de7ae57ad26"
+        attached_order_configuration:
+          type: object
+          description: The configuration of the attached order. Only TriggerBracketGtc is eligible.
+          oneOf:
+            - $ref: '#/components/schemas/MarketMarketIOC'
+            - $ref: '#/components/schemas/SORLimitIOC'
+            - $ref: '#/components/schemas/LimitLimitGTC'
+            - $ref: '#/components/schemas/LimitLimitGTD'
+            - $ref: '#/components/schemas/LimitLimitFOK'
+            - $ref: '#/components/schemas/TWAPLimitGTD'
+            - $ref: '#/components/schemas/StopLimitStopLimitGTC'
+            - $ref: '#/components/schemas/StopLimitStopLimitGTD'
+            - $ref: '#/components/schemas/TriggerBracketGTC'
+            - $ref: '#/components/schemas/TriggerBracketGTD'
+
+    MarketMarketIOC:
+      type: object
+      properties:
+        market_market_ioc:
+          type: object
+          properties:
+            quote_size:
+              type: string
+              description: The amount of the second Asset in the Trading Pair.
+              example: "10.00"
+            base_size:
+              type: string
+              description: The amount of the first Asset in the Trading Pair.
+              example: "0.001"
+
+    SORLimitIOC:
+      type: object
+      properties:
+        sor_limit_ioc:
+          type: object
+          properties:
+            quote_size:
+              type: string
+              description: The amount of the second Asset in the Trading Pair.
+              example: "10.00"
+            base_size:
+              type: string
+              description: The amount of the first Asset in the Trading Pair.
+              example: "0.001"
+            limit_price:
+              type: string
+              description: The specified price, or better, that the Order should be executed at.
+              example: "10000.00"
+
+    LimitLimitGTC:
+      type: object
+      properties:
+        limit_limit_gtc:
+          type: object
+          properties:
+            quote_size:
+              type: string
+              description: The amount of the second Asset in the Trading Pair.
+              example: "10.00"
+            base_size:
+              type: string
+              description: The amount of the first Asset in the Trading Pair.
+              example: "0.001"
+            limit_price:
+              type: string
+              description: The specified price, or better, that the Order should be executed at.
+              example: "10000.00"
+            post_only:
+              type: boolean
+              description: Enable or disable Post-only Mode.
+
+    LimitLimitGTD:
+      type: object
+      properties:
+        limit_limit_gtd:
+          type: object
+          properties:
+            quote_size:
+              type: string
+              description: The amount of the second Asset in the Trading Pair.
+              example: "10.00"
+            base_size:
+              type: string
+              description: The amount of the first Asset in the Trading Pair.
+              example: "0.001"
+            limit_price:
+              type: string
+              description: The specified price, or better, that the Order should be executed at.
+              example: "10000.00"
+            end_time:
+              type: string
+              format: date-time
+              description: The time at which the order will be cancelled if it is not Filled.
+              example: "2021-05-31T09:59:59Z"
+            post_only:
+              type: boolean
+              description: Enable or disable Post-only Mode.
+
+    LimitLimitFOK:
+      type: object
+      properties:
+        limit_limit_fok:
+          type: object
+          properties:
+            quote_size:
+              type: string
+              description: The amount of the second Asset in the Trading Pair.
+              example: "10.00"
+            base_size:
+              type: string
+              description: The amount of the first Asset in the Trading Pair.
+              example: "0.001"
+            limit_price:
+              type: string
+              description: The specified price, or better, that the Order should be executed at.
+              example: "10000.00"
+
+    TWAPLimitGTD:
+      type: object
+      properties:
+        twap_limit_gtd:
+          type: object
+          properties:
+            quote_size:
+              type: string
+              description: The amount of the second Asset in the Trading Pair.
+              example: "10.00"
+            base_size:
+              type: string
+              description: The amount of the first Asset in the Trading Pair.
+              example: "0.001"
+            start_time:
+              type: string
+              format: date-time
+              description: Time at which the order should begin executing.
+              example: "2021-05-31T07:59:59Z"
+            end_time:
+              type: string
+              format: date-time
+              description: The time at which the order will be cancelled if it is not Filled.
+              example: "2021-05-31T09:59:59Z"
+            limit_price:
+              type: string
+              description: The specified price, or better, that the Order should be executed at.
+              example: "10000.00"
+            number_buckets:
+              type: string
+              description: The number of smaller buckets/suborders over which the entire order will be broken into.
+              example: "5"
+            bucket_size:
+              type: string
+              description: The size of each suborder.
+              example: "2.00"
+            bucket_duration:
+              type: string
+              description: The duration over which each sub order was executed
+              example: "300s"
+
+    StopLimitStopLimitGTC:
+      type: object
+      properties:
+        stop_limit_stop_limit_gtc:
+          type: object
+          properties:
+            base_size:
+              type: string
+              description: The amount of the first Asset in the Trading Pair.
+              example: "0.001"
+            limit_price:
+              type: string
+              description: The specified price, or better, that the Order should be executed at.
+              example: "10000.00"
+            stop_price:
+              type: string
+              description: The specified price that will trigger the placement of the Order.
+              example: "20000.00"
+            stop_direction:
+              type: string
+              description: The direction of the stop limit Order.
+              enum:
+                - STOP_DIRECTION_STOP_UP
+                - STOP_DIRECTION_STOP_DOWN
+
+    StopLimitStopLimitGTD:
+      type: object
+      properties:
+        stop_limit_stop_limit_gtd:
+          type: object
+          properties:
+            base_size:
+              type: string
+              description: The amount of the first Asset in the Trading Pair.
+              example: "0.001"
+            limit_price:
+              type: string
+              description: The specified price, or better, that the Order should be executed at.
+              example: "10000.00"
+            stop_price:
+              type: string
+              description: The specified price that will trigger the placement of the Order.
+              example: "20000.00"
+            end_time:
+              type: string
+              format: date-time
+              description: The time at which the order will be cancelled if it is not Filled.
+              example: "2021-05-31T09:59:59Z"
+            stop_direction:
+              type: string
+              description: The direction of the stop limit Order.
+              enum:
+                - STOP_DIRECTION_STOP_UP
+                - STOP_DIRECTION_STOP_DOWN
+
+    TriggerBracketGTC:
+      type: object
+      properties:
+        trigger_bracket_gtc:
+          type: object
+          properties:
+            base_size:
+              type: string
+              description: The amount of the first Asset in the Trading Pair.
+              example: "0.001"
+            limit_price:
+              type: string
+              description: The specified price, or better, that the Order should be executed at.
+              example: "10000.00"
+            stop_trigger_price:
+              type: string
+              description: The price level where the position will be exited.
+              example: "20000.00"
+
+    TriggerBracketGTD:
+      type: object
+      properties:
+        trigger_bracket_gtd:
+          type: object
+          properties:
+            base_size:
+              type: string
+              description: The amount of the first Asset in the Trading Pair.
+              example: "0.001"
+            limit_price:
+              type: string
+              description: The specified price, or better, that the Order should be executed at.
+              example: "10000.00"
+            stop_trigger_price:
+              type: string
+              description: The price level where the position will be exited.
+              example: "20000.00"
+            end_time:
+              type: string
+              format: date-time
+              description: The time at which the order will be cancelled if it is not Filled.
+              example: "2021-05-31T09:59:59Z"
+
+    CreateOrderResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether the request was successful
+        success_response:
+          type: object
+          description: Response details for successful orders
+          properties:
+            order_id:
+              type: string
+              description: Unique identifier for the order
+              example: "11111-00000-000000"
+            product_id:
+              type: string
+              description: The trading pair
+              example: "BTC-USD"
+            side:
+              type: string
+              description: The side of the market the order is on
+            client_order_id:
+              type: string
+              description: Client-provided order identifier
+              example: "0000-00000-000000"
+        error_response:
+          type: object
+          description: Error details if the request failed
+          properties:
+            error:
+              type: string
+              description: Error code
+              example: "UNKNOWN_FAILURE_REASON"
+            message:
+              type: string
+              description: Human readable error message
+              example: "The order configuration was invalid"
+            error_details:
+              type: string
+              description: Detailed error information
+              example: "Market orders cannot be placed with empty order sizes"
+            preview_failure_reason:
+              type: string
+              description: Reason for preview failure
+              example: "UNKNOWN_PREVIEW_FAILURE_REASON"
+            new_order_failure_reason:
+              type: string
+              description: Reason for new order failure
+              example: "UNKNOWN_FAILURE_REASON"
+        order_configuration:
+          type: object
+          description: Order configuration details
+          properties:
+            market_market_ioc:
+              $ref: '#/components/schemas/MarketMarketIOC/properties/market_market_ioc'
+            sor_limit_ioc:
+              $ref: '#/components/schemas/SORLimitIOC/properties/sor_limit_ioc'
+            limit_limit_gtc:
+              $ref: '#/components/schemas/LimitLimitGTC/properties/limit_limit_gtc'
+            limit_limit_gtd:
+              $ref: '#/components/schemas/LimitLimitGTD/properties/limit_limit_gtd'
+            limit_limit_fok:
+              $ref: '#/components/schemas/LimitLimitFOK/properties/limit_limit_fok'
+            twap_limit_gtd:
+              $ref: '#/components/schemas/TWAPLimitGTD/properties/twap_limit_gtd'
+            stop_limit_stop_limit_gtc:
+              $ref: '#/components/schemas/StopLimitStopLimitGTC/properties/stop_limit_stop_limit_gtc'
+            stop_limit_stop_limit_gtd:
+              $ref: '#/components/schemas/StopLimitStopLimitGTD/properties/stop_limit_stop_limit_gtd'
+            trigger_bracket_gtc:
+              $ref: '#/components/schemas/TriggerBracketGTC/properties/trigger_bracket_gtc'
+            trigger_bracket_gtd:
+              $ref: '#/components/schemas/TriggerBracketGTD/properties/trigger_bracket_gtd'
+
+    BatchCancelOrdersRequest:
+      type: object
+      required:
+        - order_ids
+      properties:
+        order_ids:
+          type: array
+          description: The order IDs that cancel requests should be initiated for
+          items:
+            type: string
+          example: ["0000-00000", "1111-11111"]
+
+    BatchCancelOrdersResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              success:
+                type: boolean
+              failure_reason:
+                type: string
+                enum:
+                  - UNKNOWN_CANCEL_FAILURE_REASON
+                  # Other possible failure reasons could be added here
+              order_id:
+                type: string
+                example: "0000-00000"
+
+    OrdersResponse:
+      type: object
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        sequence:
+          type: string
+        has_next:
+          type: boolean
+        cursor:
+          type: string
+
+    Order:
+      type: object
+      properties:
+        order_id:
+          type: string
+          example: "0000-000000-000000"
+        product_id:
+          type: string
+          example: "BTC-USD"
+        user_id:
+          type: string
+          example: "2222-000000-000000"
+        order_configuration:
+          $ref: '#/components/schemas/OrderConfiguration'
+        side:
+          type: string
+          enum:
+            - BUY
+            - SELL
+        client_order_id:
+          type: string
+        status:
+          type: string
+          enum:
+            - OPEN
+            - FILLED
+            - CANCELLED
+            - EXPIRED
+            - FAILED
+            - PENDING
+        time_in_force:
+          type: string
+          enum:
+            - GTC
+            - GTD
+            - IOC
+            - FOK
+            - UNKNOWN_TIME_IN_FORCE
+        created_time:
+          type: string
+          format: date-time
+        completion_percentage:
+          type: string
+        filled_size:
+          type: string
+        average_filled_price:
+          type: string
+        fee:
+          type: string
+        number_of_fills:
+          type: string
+        filled_value:
+          type: string
+        pending_cancel:
+          type: boolean
+        size_in_quote:
+          type: boolean
+        total_fees:
+          type: string
+        size_inclusive_of_fees:
+          type: boolean
+        total_value_after_fees:
+          type: string
+        trigger_status:
+          type: string
+        order_type:
+          type: string
+          enum:
+            - MARKET
+            - LIMIT
+            - STOP
+            - STOP_LIMIT
+            - UNKNOWN_ORDER_TYPE
+        reject_reason:
+          type: string
+        settled:
+          type: boolean
+        product_type:
+          type: string
+          enum:
+            - SPOT
+            - FUTURE
+            - UNKNOWN_PRODUCT_TYPE
+        reject_message:
+          type: string
+        cancel_message:
+          type: string
+        order_placement_source:
+          type: string
+        outstanding_hold_amount:
+          type: string
+        is_liquidation:
+          type: boolean
+        last_fill_time:
+          type: string
+        edit_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/EditHistory'
+        leverage:
+          type: string
+        margin_type:
+          type: string
+        retail_portfolio_id:
+          type: string
+          format: uuid
+        originating_order_id:
+          type: string
+          format: uuid
+        attached_order_id:
+          type: string
+          format: uuid
+        attached_order_configuration:
+          $ref: '#/components/schemas/OrderConfiguration'
+
+    EditHistory:
+      type: object
+      properties:
+        price:
+          type: string
+        size:
+          type: string
+        replace_accept_timestamp:
+          type: string
+
+    OrderConfiguration:
+      type: object
+      properties:
+        market_market_ioc:
+          $ref: '#/components/schemas/MarketMarketIOC'
+        sor_limit_ioc:
+          $ref: '#/components/schemas/SORLimitIOC'
+        limit_limit_gtc:
+          $ref: '#/components/schemas/LimitLimitGTC'
+        limit_limit_gtd:
+          $ref: '#/components/schemas/LimitLimitGTD'
+        limit_limit_fok:
+          $ref: '#/components/schemas/LimitLimitFOK'
+        twap_limit_gtd:
+          $ref: '#/components/schemas/TwapLimitGTD'
+        stop_limit_stop_limit_gtc:
+          $ref: '#/components/schemas/StopLimitStopLimitGTC'
+        stop_limit_stop_limit_gtd:
+          $ref: '#/components/schemas/StopLimitStopLimitGTD'
+        trigger_bracket_gtc:
+          $ref: '#/components/schemas/TriggerBracketGTC'
+        trigger_bracket_gtd:
+          $ref: '#/components/schemas/TriggerBracketGTD'
+
+    TwapLimitGTD:
+      type: object
+      properties:
+        quote_size:
+          type: string
+        base_size:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        limit_price:
+          type: string
+        number_buckets:
+          type: string
+        bucket_size:
+          type: string
+        bucket_duration:
+          type: string
+
+    Fill:
+      type: object
+      properties:
+        entry_id:
+          type: string
+          example: "22222-2222222-22222222"
+        trade_id:
+          type: string
+          example: "1111-11111-111111"
+        order_id:
+          type: string
+          example: "0000-000000-000000"
+        trade_time:
+          type: string
+          format: date-time
+          example: "2021-05-31T09:59:59Z"
+        trade_type:
+          type: string
+          example: "FILL"
+        price:
+          type: string
+          example: "10000.00"
+        size:
+          type: string
+          example: "0.001"
+        commission:
+          type: string
+          example: "1.25"
+        product_id:
+          type: string
+          example: "BTC-USD"
+        sequence_timestamp:
+          type: string
+          format: date-time
+          example: "2021-05-31T09:58:59Z"
+        liquidity_indicator:
+          type: string
+          example: "UNKNOWN_LIQUIDITY_INDICATOR"
+        size_in_quote:
+          type: boolean
+          example: false
+        user_id:
+          type: string
+          example: "3333-333333-3333333"
+        side:
+          type: string
+        retail_portfolio_id:
+          type: string
+          example: "4444-444444-4444444"
+
+    FillsResponse:
+      type: object
+      properties:
+        fills:
+          type: array
+          items:
+            $ref: '#/components/schemas/Fill'
+        cursor:
+          type: string
+          example: "789100"
+
+    OrderResponse:
+      type: object
+      properties:
+        order:
+          $ref: '#/components/schemas/Order'
+
+    OrderPreviewRequest:
+      type: object
+      required:
+        - product_id
+        - side
+        - order_configuration
+      properties:
+        product_id:
+          type: string
+          description: The trading pair (e.g. 'BTC-USD')
+          example: BTC-USD
+        side:
+          type: string
+          description: The side of the market that the order is on
+          enum:
+            - BUY
+            - SELL
+          example: BUY
+        order_configuration:
+          type: object
+          description: The configuration of the order (e.g. the order type, size, etc).
+          oneOf:
+            - $ref: '#/components/schemas/MarketMarketIOC'
+            - $ref: '#/components/schemas/SORLimitIOC'
+            - $ref: '#/components/schemas/LimitLimitGTC'
+            - $ref: '#/components/schemas/LimitLimitGTD'
+            - $ref: '#/components/schemas/LimitLimitFOK'
+            - $ref: '#/components/schemas/TWAPLimitGTD'
+            - $ref: '#/components/schemas/StopLimitStopLimitGTC'
+            - $ref: '#/components/schemas/StopLimitStopLimitGTD'
+            - $ref: '#/components/schemas/TriggerBracketGTC'
+            - $ref: '#/components/schemas/TriggerBracketGTD'
+        retail_portfolio_id:
+          type: string
+          description: (Deprecated) The ID of the portfolio to associate the order with. Only applicable for legacy keys.
+          example: 11111111-1111-1111-1111-111111111111
+        leverage:
+          type: string
+          description: The amount of leverage for the order (default is 1.0)
+          example: 2.0
+        margin_type:
+          type: string
+          description: Margin Type for this order (default is CROSS)
+          enum:
+            - CROSS
+            - ISOLATED
+          example: CROSS
+        attached_order_configuration:
+          type: object
+          description: The configuration of the attached order. Only TriggerBracketGtc is eligible.
+          oneOf:
+            - $ref: '#/components/schemas/MarketMarketIOC'
+            - $ref: '#/components/schemas/SORLimitIOC'
+            - $ref: '#/components/schemas/LimitLimitGTC'
+            - $ref: '#/components/schemas/LimitLimitGTD'
+            - $ref: '#/components/schemas/LimitLimitFOK'
+            - $ref: '#/components/schemas/TWAPLimitGTD'
+            - $ref: '#/components/schemas/StopLimitStopLimitGTC'
+            - $ref: '#/components/schemas/StopLimitStopLimitGTD'
+            - $ref: '#/components/schemas/TriggerBracketGTC'
+            - $ref: '#/components/schemas/TriggerBracketGTD'
+
+    OrderPreviewResponse:
+      type: object
+      properties:
+        order_total:
+          type: string
+          description: Total order amount
+        commission_total:
+          type: string
+          description: Total commission amount
+        errs:
+          type: array
+          description: List of errors
+          items:
+            type: string
+        warning:
+          type: array
+          description: List of warnings
+          items:
+            type: string
+        quote_size:
+          type: number
+          description: The amount of the quote asset
+          example: 10
+        base_size:
+          type: number
+          description: The amount of the base asset
+          example: 0.001
+        best_bid:
+          type: string
+          description: Current best bid price
+        best_ask:
+          type: string
+          description: Current best ask price
+        is_max:
+          type: boolean
+          description: Whether the order is at maximum size
+        order_margin_total:
+          type: string
+          description: Total margin for the order
+        leverage:
+          type: string
+          description: Leverage used for the order
+          example: 2.0
+        long_leverage:
+          type: string
+          description: Long position leverage
+        short_leverage:
+          type: string
+          description: Short position leverage
+        slippage:
+          type: string
+          description: Expected slippage
+        preview_id:
+          type: string
+          description: Unique identifier for the preview
+        current_liquidation_buffer:
+          type: string
+          description: Current liquidation buffer
+        projected_liquidation_buffer:
+          type: string
+          description: Projected liquidation buffer after order execution
+        max_leverage:
+          type: string
+          description: Maximum available leverage
+        pnl_configuration:
+          type: object
+          description: Profit and loss configuration
+          properties:
+            trigger_bracket_pnl:
+              type: object
+              properties:
+                take_profit_pnl:
+                  type: string
+                  description: Take profit PnL value
+                stop_loss_pnl:
+                  type: string
+                  description: Stop loss PnL value
+        twap_bucket_metadata:
+          type: object
+          description: TWAP order bucket metadata
+          properties:
+            bucket_duration:
+              type: string
+              description: Duration of each bucket
+            bucket_size:
+              type: string
+              description: Size of each bucket
+            number_buckets:
+              type: string
+              description: Number of buckets
+        position_notional_limit:
+          type: string
+          description: Position notional limit
+
+    TimeResponse:
+      type: object
+      properties:
+        iso:
+          type: string
+          description: ISO 8601 formatted date-time string
+          example: "2025-03-30T14:30:45Z"
+        epochSeconds:
+          type: string
+          description: Unix timestamp in seconds
+          example: "1711812645"
+        epochMillis:
+          type: string
+          description: Unix timestamp in milliseconds
+          example: "1711812645000"
+      required:
+        - iso
+        - epochSeconds
+        - epochMillis
+
+    ProductBookResponse:
+      type: object
+      properties:
+        pricebook:
+          type: object
+          properties:
+            product_id:
+              type: string
+              description: The trading pair
+              example: "BTC-USD"
+            bids:
+              type: array
+              description: List of bid orders
+              items:
+                $ref: '#/components/schemas/OrderBookEntry'
+            asks:
+              type: array
+              description: List of ask orders
+              items:
+                $ref: '#/components/schemas/OrderBookEntry'
+            time:
+              type: string
+              description: Timestamp for the order book
+              example: "2025-03-30T14:30:45Z"
+          required:
+            - product_id
+            - bids
+            - asks
+            - time
+        last:
+          type: string
+          description: Last traded price
+          example: "68450.50"
+        mid_market:
+          type: string
+          description: Mid-market price
+          example: "68455.25"
+        spread_bps:
+          type: string
+          description: Spread in basis points
+          example: "1.5"
+        spread_absolute:
+          type: string
+          description: Absolute spread value
+          example: "10.00"
+      required:
+        - pricebook
+
+    OrderBookEntry:
+      type: object
+      properties:
+        price:
+          type: string
+          description: Price level
+          example: "68450.50"
+        size:
+          type: string
+          description: Quantity available at this price level
+          example: "1.25"
+      required:
+        - price
+        - size

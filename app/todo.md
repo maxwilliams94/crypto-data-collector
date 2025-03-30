@@ -81,6 +81,6 @@
 - [ ] Subscription separation from websocket connection/onOpen
 - [ ] Stale USD rate handling -> stop data collection
 - [ ] CoinbaseWebSocketClient - allow websocket URL to be configurable with sensible default
-- [ ] OpenAPI specification for Coinbase
-- [ ] OpenAPI specification for Firi
+- [X] OpenAPI specification for Coinbase
+- [X] OpenAPI specification for Firi
 - [ ] Implement WebAPI from openapi generated classes

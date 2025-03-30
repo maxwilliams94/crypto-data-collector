@@ -27,10 +27,22 @@ tasks.register<org.openapitools.generator.gradle.plugin.tasks.GenerateTask>("gen
     configOptions.put("library", "okhttp-gson")
 }
 
+tasks.register<org.openapitools.generator.gradle.plugin.tasks.GenerateTask>("generateCoinbaseV3") {
+    generatorName.set("java")
+    inputSpec.set("$rootDir/apis/src/main/resources/coinbase-v3.yaml")
+    outputDir.set("$buildDir/generated")
+    apiPackage.set("ms.maxwillia.cryptodata.apis.coinbase.v3.api")
+    invokerPackage.set("ms.maxwillia.cryptodata.apis.coinbase.v3.invoker")
+    modelPackage.set("ms.maxwillia.cryptodata.apis.coinbase.v3.model")
+    configOptions.put("dateLibrary", "java8")
+    configOptions.put("library", "okhttp-gson")
+}
+
 tasks.test {
     useJUnitPlatform()
 }
 
 tasks.named("build") {
     dependsOn("generateFiriV2")
+    dependsOn("generateCoinbaseV3")
 }

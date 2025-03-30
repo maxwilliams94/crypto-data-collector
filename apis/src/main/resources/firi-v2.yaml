@@ -1,4 +1,4 @@
-openapi: "3.1.0"
+openapi: 3.1.1
 info:
   title: "Firi Trading API"
   version: "2.0.0"
@@ -11,7 +11,7 @@ servers:
     description: "Production server"
 paths:
   /orders:
-    get:
+    get :
       summary: "List Orders"
       description: "Retrieve a list of orders for the authenticated user."
       operationId: "listOrders"
@@ -108,6 +108,7 @@ paths:
     get:
       summary: Get available markets
       description: Retrieve a list of all available markets.
+      operationId: getMarkets
       tags:
         - "Markets"
       responses:
@@ -123,6 +124,7 @@ paths:
     get:
       summary: Get info about a specific market
       description: Retrieve detailed information about a specific market.
+      operationId: getMarket
       tags:
         - "Markets"
       parameters:
@@ -143,6 +145,7 @@ paths:
     get:
       summary: Get ticker for a specific market
       description: Retrieve the current ticker information for a specific market.
+      operationId: getTicker
       tags:
         - "Markets"
       parameters:
@@ -163,6 +166,7 @@ paths:
     get:
       summary: Get order book depth for a market
       description: Retrieve the order book depth for a specific market.
+      operationId: getOrderBookDepth
       tags:
         - "Markets"
       parameters:
@@ -197,6 +201,7 @@ paths:
     get:
       summary: Get trade history for a specific market
       description: Retrieve the trade history for a specific market.
+      operationId: getTradeHistory
       tags:
         - "Markets"
       parameters:
@@ -226,6 +231,7 @@ paths:
     get:
       summary: Retrieve account balances
       description: Fetch the current balances for all currencies in the user's account.
+      operationId: getBalances
       tags:
         - "Balance"
       security:
@@ -244,6 +250,7 @@ paths:
     get:
       summary: Retrieve deposit address for a specific currency
       description: Fetch the deposit address associated with the specified currency.
+      operationId: getDepositAddress
       tags:
         - "Wallet"
       security:
@@ -267,6 +274,7 @@ paths:
     get:
       summary: Retrieve pending withdrawals for a specific currency
       description: Fetch the list of pending withdrawal transactions for the specified currency.
+      operationId: getPendingWithdrawals
       tags:
         - "Wallet"
       security:
