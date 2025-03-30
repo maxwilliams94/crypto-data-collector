@@ -33,6 +33,7 @@ class CoinbaseWebSocketClientTest {
     private CoinbaseWebSocketCollector client;
     private BlockingQueue<CryptoTick> dataQueue;
     private static final String TEST_EXCHANGE_TRADE_PAIR = "BTC-USD";
+    private static final String TEST_NORMALISED_TRADE_PAIR = "BTCUSD";
     private static final String TEST_CURRENCY = "BTC";
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private JsonNode testData;
@@ -99,7 +100,7 @@ class CoinbaseWebSocketClientTest {
         // Verify the tick was added to the queue
         CryptoTick tick = dataQueue.poll();
         assertNotNull(tick);
-        assertEquals(TEST_EXCHANGE_TRADE_PAIR, tick.symbol());
+        assertEquals(TEST_NORMALISED_TRADE_PAIR, tick.symbol());
         assertEquals(45000.00, tick.price());
         assertEquals(1000.5, tick.volume_24_h());
         assertEquals(44999.00, tick.best_bid());
