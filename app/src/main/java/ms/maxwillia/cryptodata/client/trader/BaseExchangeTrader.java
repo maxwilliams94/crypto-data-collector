@@ -3,8 +3,11 @@ package ms.maxwillia.cryptodata.client.trader;
 import lombok.Getter;
 import lombok.Setter;
 import ms.maxwillia.cryptodata.client.BaseExchangeClient;
+import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
 import ms.maxwillia.cryptodata.model.Transaction;
+import ms.maxwillia.cryptodata.model.TransactionSide;
+import ms.maxwillia.cryptodata.model.TransactionType;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
@@ -20,6 +23,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 public abstract class BaseExchangeTrader extends BaseExchangeClient implements ExchangeTrader {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
@@ -47,6 +51,10 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
         this.credentials = credentials;
         this.transactions = new ArrayList<>();
         this.isNative = isNative;
+    }
+
+    protected static String generateClientOrderId() {
+        return UUID.randomUUID().toString();
     }
 
     public void enableTrading() {
@@ -132,4 +140,24 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
         }
         return currencies;
     }
+
+    @Override
+    public boolean initialize() {
+        setStatus(ClientStatus.STARTING);
+        try {
+            if (!configure()) {
+                return false;
+            }
+            setStatus(ClientStatus.INITIALIZED);
+            logger.debug("Initialized {} wih credentials: {}", this.getClass().getName(), credentials.getName());
+            return true;
+        } catch (Exception e) {
+            logger.error("Failed to initialize {}: {}", this.getClass().getName(), e.getMessage());
+            setStatus(ClientStatus.ERROR);
+            return false;
+        }
+    }
+
+    abstract Transaction executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity, String clientOrderId);
+
 }

@@ -55,23 +55,6 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         this.COINBASE_API_ROOT = apiRoot;
     }
 
-    @Override
-    public boolean initialize() {
-        setStatus(ClientStatus.STARTING);
-        try {
-            if (!configure()) {
-                return false;
-            }
-            setStatus(ClientStatus.INITIALIZED);
-            logger.debug("Initialized Coinbase trader wih credentials: {}", credentials.getName());
-            return true;
-        } catch (Exception e) {
-            logger.error("Failed to initialize Coinbase trader: {}", e.getMessage());
-            setStatus(ClientStatus.ERROR);
-            return false;
-        }
-    }
-
     protected String generateJWT(String requestMethod, String requestUrl) throws Exception {
         // create header object
         Map<String, Object> header = new HashMap<>();
@@ -180,7 +163,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
      * @return Transaction if the order was executed successfully, null otherwise.
      */
     @Nullable
-    private Transaction executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity, String clientOrderId) {
+    Transaction executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity, String clientOrderId) {
         logger.info("{}: executing {} {} {} order - Price: {}, Quantity: {}", getTradePair(), isPreviewTrade() ? "preview" : "", orderType, side, price, quantity);
         if (!isConnected) {
             logger.error("Cannot execute order - not connected");
@@ -338,10 +321,6 @@ public class CoinbaseTrader extends BaseExchangeTrader {
             logger.error("Failed to execute withdrawal: {}", e.getMessage());
             return false;
         }
-    }
-
-    private static String generateClientOrderId() {
-        return UUID.randomUUID().toString();
     }
 
     public boolean findAccountIds() {

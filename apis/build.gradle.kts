@@ -38,11 +38,17 @@ tasks.register<org.openapitools.generator.gradle.plugin.tasks.GenerateTask>("gen
     configOptions.put("library", "okhttp-gson")
 }
 
+tasks.register("generateClasses") {
+    group = "build"
+    description = "Generates the classes from the OpenAPI specifications."
+    dependsOn("generateFiriV2")
+    dependsOn("generateCoinbaseV3")
+}
+
 tasks.test {
     useJUnitPlatform()
 }
 
 tasks.named("build") {
-    dependsOn("generateFiriV2")
-    dependsOn("generateCoinbaseV3")
+    dependsOn("generateClasses")
 }

@@ -832,16 +832,16 @@ components:
           type: object
           description: The configuration of the order (e.g. the order type, size, etc).
           oneOf:
-            - $ref: '#/components/schemas/MarketMarketIOC'
-            - $ref: '#/components/schemas/SORLimitIOC'
-            - $ref: '#/components/schemas/LimitLimitGTC'
-            - $ref: '#/components/schemas/LimitLimitGTD'
-            - $ref: '#/components/schemas/LimitLimitFOK'
-            - $ref: '#/components/schemas/TWAPLimitGTD'
-            - $ref: '#/components/schemas/StopLimitStopLimitGTC'
-            - $ref: '#/components/schemas/StopLimitStopLimitGTD'
-            - $ref: '#/components/schemas/TriggerBracketGTC'
-            - $ref: '#/components/schemas/TriggerBracketGTD'
+            - $ref: '#/components/schemas/MarketMarketIoc'
+            - $ref: '#/components/schemas/SorLimitIoc'
+            - $ref: '#/components/schemas/LimitLimitGtc'
+            - $ref: '#/components/schemas/LimitLimitGtd'
+            - $ref: '#/components/schemas/LimitLimitFok'
+            - $ref: '#/components/schemas/TwapLimitGtd'
+            - $ref: '#/components/schemas/StopLimitStopLimitGtc'
+            - $ref: '#/components/schemas/StopLimitStopLimitGtd'
+            - $ref: '#/components/schemas/TriggerBracketGtc'
+            - $ref: '#/components/schemas/TriggerBracketGtd'
         retail_portfolio_id:
           type: string
           description: (Deprecated) The ID of the portfolio to associate the order with. Only applicable for legacy keys.
@@ -864,18 +864,18 @@ components:
           type: object
           description: The configuration of the attached order. Only TriggerBracketGtc is eligible.
           oneOf:
-            - $ref: '#/components/schemas/MarketMarketIOC'
-            - $ref: '#/components/schemas/SORLimitIOC'
-            - $ref: '#/components/schemas/LimitLimitGTC'
-            - $ref: '#/components/schemas/LimitLimitGTD'
-            - $ref: '#/components/schemas/LimitLimitFOK'
-            - $ref: '#/components/schemas/TWAPLimitGTD'
-            - $ref: '#/components/schemas/StopLimitStopLimitGTC'
-            - $ref: '#/components/schemas/StopLimitStopLimitGTD'
-            - $ref: '#/components/schemas/TriggerBracketGTC'
-            - $ref: '#/components/schemas/TriggerBracketGTD'
+            - $ref: '#/components/schemas/MarketMarketIoc'
+            - $ref: '#/components/schemas/SorLimitIoc'
+            - $ref: '#/components/schemas/LimitLimitGtc'
+            - $ref: '#/components/schemas/LimitLimitGtd'
+            - $ref: '#/components/schemas/LimitLimitFok'
+            - $ref: '#/components/schemas/TwapLimitGtd'
+            - $ref: '#/components/schemas/StopLimitStopLimitGtc'
+            - $ref: '#/components/schemas/StopLimitStopLimitGtd'
+            - $ref: '#/components/schemas/TriggerBracketGtc'
+            - $ref: '#/components/schemas/TriggerBracketGtd'
 
-    MarketMarketIOC:
+    MarketMarketIoc:
       type: object
       properties:
         market_market_ioc:
@@ -890,7 +890,7 @@ components:
               description: The amount of the first Asset in the Trading Pair.
               example: "0.001"
 
-    SORLimitIOC:
+    SorLimitIoc:
       type: object
       properties:
         sor_limit_ioc:
@@ -909,7 +909,7 @@ components:
               description: The specified price, or better, that the Order should be executed at.
               example: "10000.00"
 
-    LimitLimitGTC:
+    LimitLimitGtc:
       type: object
       properties:
         limit_limit_gtc:
@@ -931,7 +931,7 @@ components:
               type: boolean
               description: Enable or disable Post-only Mode.
 
-    LimitLimitGTD:
+    LimitLimitGtd:
       type: object
       properties:
         limit_limit_gtd:
@@ -958,7 +958,7 @@ components:
               type: boolean
               description: Enable or disable Post-only Mode.
 
-    LimitLimitFOK:
+    LimitLimitFok:
       type: object
       properties:
         limit_limit_fok:
@@ -977,7 +977,7 @@ components:
               description: The specified price, or better, that the Order should be executed at.
               example: "10000.00"
 
-    TWAPLimitGTD:
+    TwapLimitGtd:
       type: object
       properties:
         twap_limit_gtd:
@@ -1018,7 +1018,7 @@ components:
               description: The duration over which each sub order was executed
               example: "300s"
 
-    StopLimitStopLimitGTC:
+    StopLimitStopLimitGtc:
       type: object
       properties:
         stop_limit_stop_limit_gtc:
@@ -1043,7 +1043,7 @@ components:
                 - STOP_DIRECTION_STOP_UP
                 - STOP_DIRECTION_STOP_DOWN
 
-    StopLimitStopLimitGTD:
+    StopLimitStopLimitGtd:
       type: object
       properties:
         stop_limit_stop_limit_gtd:
@@ -1073,7 +1073,7 @@ components:
                 - STOP_DIRECTION_STOP_UP
                 - STOP_DIRECTION_STOP_DOWN
 
-    TriggerBracketGTC:
+    TriggerBracketGtc:
       type: object
       properties:
         trigger_bracket_gtc:
@@ -1092,7 +1092,7 @@ components:
               description: The price level where the position will be exited.
               example: "20000.00"
 
-    TriggerBracketGTD:
+    TriggerBracketGtd:
       type: object
       properties:
         trigger_bracket_gtd:
@@ -1170,25 +1170,25 @@ components:
           description: Order configuration details
           properties:
             market_market_ioc:
-              $ref: '#/components/schemas/MarketMarketIOC/properties/market_market_ioc'
+              $ref: '#/components/schemas/MarketMarketIoc/properties/market_market_ioc'
             sor_limit_ioc:
-              $ref: '#/components/schemas/SORLimitIOC/properties/sor_limit_ioc'
+              $ref: '#/components/schemas/SorLimitIoc/properties/sor_limit_ioc'
             limit_limit_gtc:
-              $ref: '#/components/schemas/LimitLimitGTC/properties/limit_limit_gtc'
+              $ref: '#/components/schemas/LimitLimitGtc/properties/limit_limit_gtc'
             limit_limit_gtd:
-              $ref: '#/components/schemas/LimitLimitGTD/properties/limit_limit_gtd'
+              $ref: '#/components/schemas/LimitLimitGtd/properties/limit_limit_gtd'
             limit_limit_fok:
-              $ref: '#/components/schemas/LimitLimitFOK/properties/limit_limit_fok'
+              $ref: '#/components/schemas/LimitLimitFok/properties/limit_limit_fok'
             twap_limit_gtd:
-              $ref: '#/components/schemas/TWAPLimitGTD/properties/twap_limit_gtd'
+              $ref: '#/components/schemas/TwapLimitGtd/properties/twap_limit_gtd'
             stop_limit_stop_limit_gtc:
-              $ref: '#/components/schemas/StopLimitStopLimitGTC/properties/stop_limit_stop_limit_gtc'
+              $ref: '#/components/schemas/StopLimitStopLimitGtc/properties/stop_limit_stop_limit_gtc'
             stop_limit_stop_limit_gtd:
-              $ref: '#/components/schemas/StopLimitStopLimitGTD/properties/stop_limit_stop_limit_gtd'
+              $ref: '#/components/schemas/StopLimitStopLimitGtd/properties/stop_limit_stop_limit_gtd'
             trigger_bracket_gtc:
-              $ref: '#/components/schemas/TriggerBracketGTC/properties/trigger_bracket_gtc'
+              $ref: '#/components/schemas/TriggerBracketGtc/properties/trigger_bracket_gtc'
             trigger_bracket_gtd:
-              $ref: '#/components/schemas/TriggerBracketGTD/properties/trigger_bracket_gtd'
+              $ref: '#/components/schemas/TriggerBracketGtd/properties/trigger_bracket_gtd'
 
     BatchCancelOrdersRequest:
       type: object
@@ -1364,47 +1364,25 @@ components:
       type: object
       properties:
         market_market_ioc:
-          $ref: '#/components/schemas/MarketMarketIOC'
+          $ref: '#/components/schemas/MarketMarketIoc'
         sor_limit_ioc:
-          $ref: '#/components/schemas/SORLimitIOC'
+          $ref: '#/components/schemas/SorLimitIoc'
         limit_limit_gtc:
-          $ref: '#/components/schemas/LimitLimitGTC'
+          $ref: '#/components/schemas/LimitLimitGtc'
         limit_limit_gtd:
-          $ref: '#/components/schemas/LimitLimitGTD'
+          $ref: '#/components/schemas/LimitLimitGtd'
         limit_limit_fok:
-          $ref: '#/components/schemas/LimitLimitFOK'
+          $ref: '#/components/schemas/LimitLimitFok'
         twap_limit_gtd:
-          $ref: '#/components/schemas/TwapLimitGTD'
+          $ref: '#/components/schemas/TwapLimitGtd'
         stop_limit_stop_limit_gtc:
-          $ref: '#/components/schemas/StopLimitStopLimitGTC'
+          $ref: '#/components/schemas/StopLimitStopLimitGtc'
         stop_limit_stop_limit_gtd:
-          $ref: '#/components/schemas/StopLimitStopLimitGTD'
+          $ref: '#/components/schemas/StopLimitStopLimitGtd'
         trigger_bracket_gtc:
-          $ref: '#/components/schemas/TriggerBracketGTC'
+          $ref: '#/components/schemas/TriggerBracketGtc'
         trigger_bracket_gtd:
-          $ref: '#/components/schemas/TriggerBracketGTD'
-
-    TwapLimitGTD:
-      type: object
-      properties:
-        quote_size:
-          type: string
-        base_size:
-          type: string
-        start_time:
-          type: string
-          format: date-time
-        end_time:
-          type: string
-          format: date-time
-        limit_price:
-          type: string
-        number_buckets:
-          type: string
-        bucket_size:
-          type: string
-        bucket_duration:
-          type: string
+          $ref: '#/components/schemas/TriggerBracketGtd'
 
     Fill:
       type: object
@@ -1495,16 +1473,16 @@ components:
           type: object
           description: The configuration of the order (e.g. the order type, size, etc).
           oneOf:
-            - $ref: '#/components/schemas/MarketMarketIOC'
-            - $ref: '#/components/schemas/SORLimitIOC'
-            - $ref: '#/components/schemas/LimitLimitGTC'
-            - $ref: '#/components/schemas/LimitLimitGTD'
-            - $ref: '#/components/schemas/LimitLimitFOK'
-            - $ref: '#/components/schemas/TWAPLimitGTD'
-            - $ref: '#/components/schemas/StopLimitStopLimitGTC'
-            - $ref: '#/components/schemas/StopLimitStopLimitGTD'
-            - $ref: '#/components/schemas/TriggerBracketGTC'
-            - $ref: '#/components/schemas/TriggerBracketGTD'
+            - $ref: '#/components/schemas/MarketMarketIoc'
+            - $ref: '#/components/schemas/SorLimitIoc'
+            - $ref: '#/components/schemas/LimitLimitGtc'
+            - $ref: '#/components/schemas/LimitLimitGtd'
+            - $ref: '#/components/schemas/LimitLimitFok'
+            - $ref: '#/components/schemas/TwapLimitGtd'
+            - $ref: '#/components/schemas/StopLimitStopLimitGtc'
+            - $ref: '#/components/schemas/StopLimitStopLimitGtd'
+            - $ref: '#/components/schemas/TriggerBracketGtc'
+            - $ref: '#/components/schemas/TriggerBracketGtd'
         retail_portfolio_id:
           type: string
           description: (Deprecated) The ID of the portfolio to associate the order with. Only applicable for legacy keys.
@@ -1524,16 +1502,16 @@ components:
           type: object
           description: The configuration of the attached order. Only TriggerBracketGtc is eligible.
           oneOf:
-            - $ref: '#/components/schemas/MarketMarketIOC'
-            - $ref: '#/components/schemas/SORLimitIOC'
-            - $ref: '#/components/schemas/LimitLimitGTC'
-            - $ref: '#/components/schemas/LimitLimitGTD'
-            - $ref: '#/components/schemas/LimitLimitFOK'
-            - $ref: '#/components/schemas/TWAPLimitGTD'
-            - $ref: '#/components/schemas/StopLimitStopLimitGTC'
-            - $ref: '#/components/schemas/StopLimitStopLimitGTD'
-            - $ref: '#/components/schemas/TriggerBracketGTC'
-            - $ref: '#/components/schemas/TriggerBracketGTD'
+            - $ref: '#/components/schemas/MarketMarketIoc'
+            - $ref: '#/components/schemas/SorLimitIoc'
+            - $ref: '#/components/schemas/LimitLimitGtc'
+            - $ref: '#/components/schemas/LimitLimitGtd'
+            - $ref: '#/components/schemas/LimitLimitFok'
+            - $ref: '#/components/schemas/TwapLimitGtd'
+            - $ref: '#/components/schemas/StopLimitStopLimitGtc'
+            - $ref: '#/components/schemas/StopLimitStopLimitGtd'
+            - $ref: '#/components/schemas/TriggerBracketGtc'
+            - $ref: '#/components/schemas/TriggerBracketGtd'
 
     OrderPreviewResponse:
       type: object

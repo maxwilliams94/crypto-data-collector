@@ -47,6 +47,13 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 
+    // OpenApi Generated Classes
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
+    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("io.gsonfire:gson-fire:1.8.5")
+    implementation("com.google.code.findbugs:jsr305:3.0.2")
+
+
     // Testing dependencies
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
@@ -73,4 +80,14 @@ application {
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
+}
+
+tasks.named("compileJava") {
+    dependsOn(":apis:generateClasses")
+}
+
+sourceSets {
+    main {
+        java.srcDir("$rootDir/apis/build/generated/src/main/java")
+    }
 }
