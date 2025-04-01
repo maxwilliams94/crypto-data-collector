@@ -160,4 +160,8 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
 
     abstract Transaction executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity, String clientOrderId);
 
+    abstract String getAssetWalletAddress();
+
+    abstract String getIntermediateWalletAddress();
+
 }

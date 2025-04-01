@@ -30,7 +30,7 @@ import javax.money.MonetaryAmount;
 import java.util.concurrent.TimeUnit;
 
 
-public class CoinbaseTrader extends BaseExchangeTrader {
+class CoinbaseTrader extends BaseExchangeTrader {
     private HttpUrl COINBASE_API_ROOT = HttpUrl.parse("https://api.coinbase.com");
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -284,6 +284,16 @@ public class CoinbaseTrader extends BaseExchangeTrader {
         setOrderSinceLastBalance(true);
         addTransaction(transaction);
         return transaction;
+    }
+
+    @Override
+    String getAssetWalletAddress() {
+        return "";
+    }
+
+    @Override
+    String getIntermediateWalletAddress() {
+        return "";
     }
 
     @Override

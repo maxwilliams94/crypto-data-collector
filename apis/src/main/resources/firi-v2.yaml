@@ -250,7 +250,7 @@ paths:
     get:
       summary: Retrieve deposit address for a specific currency
       description: Fetch the deposit address associated with the specified currency.
-      operationId: getDepositAddress
+      operationId: getCurrencyDepositAddress
       tags:
         - "Wallet"
       security:
@@ -261,7 +261,13 @@ paths:
           required: true
           description: The currency code (e.g., BTC, ETH)
           schema:
-            type: string
+            enum:
+              - BTC
+              - ETH
+              - LTC
+              - ADA
+              - DAI
+
       responses:
         '200':
           description: Successful operation
@@ -269,6 +275,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DepositAddress'
+
+  /deposit/address:
+    get:
+      summary: Get a user's deposit addresses
+      description: Retrieve the deposit addresses for all currencies associated with the user's account.
+      operationId: getDepositAddresses
+      tags:
+        - "Wallet"
+      security:
+        - HMAC: [ ]
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DepositAddresses'
+
 
   /{currency}/withdraw/pending:
     get:
@@ -431,6 +457,13 @@ components:
           description: The available balance for trading or withdrawal
 
     DepositAddress:
+      type: object
+      properties:
+        address:
+          type: string
+          description: The deposit address for the specified currency
+
+    DepositAddresses:
       type: object
       properties:
         address:

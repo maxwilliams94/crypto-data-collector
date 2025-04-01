@@ -1,22 +1,10 @@
 package ms.maxwillia.cryptodata.client.trader;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSSigner;
-import com.nimbusds.jose.crypto.ECDSASigner;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
-import ms.maxwillia.cryptodata.apis.coinbase.v3.api.AccountsApi;
 import ms.maxwillia.cryptodata.apis.firi.v2.invoker.ApiException;
 import ms.maxwillia.cryptodata.client.ClientStatus;
-import ms.maxwillia.cryptodata.client.mapper.coinbase.CoinbaseOrderMapper;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
 import ms.maxwillia.cryptodata.model.Transaction;
 import ms.maxwillia.cryptodata.model.TransactionSide;
-import ms.maxwillia.cryptodata.model.TransactionStatus;
 import ms.maxwillia.cryptodata.model.TransactionType;
 import okhttp3.*;
 import org.jetbrains.annotations.Nullable;
@@ -27,8 +15,8 @@ import java.util.HashMap;
 
 import ms.maxwillia.cryptodata.apis.firi.v2.invoker.ApiClient;
 
-import ms.maxwillia.cryptodata.apis.firi.v2.api.MarketsApi;
 import ms.maxwillia.cryptodata.apis.firi.v2.api.BalanceApi;
+import ms.maxwillia.cryptodata.apis.firi.v2.api.WalletApi;
 
 
 public class FiriTrader extends BaseExchangeTrader {
@@ -137,5 +125,17 @@ public class FiriTrader extends BaseExchangeTrader {
     @Override
     Transaction executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity, String clientOrderId) {
         return null;
+    }
+
+    @Override
+    String getAssetWalletAddress() {
+        //TODO implement once firi confirms /deposit/address endpoint availability and return
+        return "";
+    }
+
+    @Override
+    String getIntermediateWalletAddress() {
+        //TODO implement once firi confirms /deposit/address endpoint availability and return
+        return "";
     }
 }
