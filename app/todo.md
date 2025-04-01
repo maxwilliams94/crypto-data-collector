@@ -84,3 +84,4 @@
 - [X] OpenAPI specification for Coinbase
 - [X] OpenAPI specification for Firi
 - [ ] Implement WebAPI from openapi generated classes
+- [ ] Move to HMAC_encrypted_secretKey for Firi authentication

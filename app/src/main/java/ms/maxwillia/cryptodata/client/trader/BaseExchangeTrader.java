@@ -44,7 +44,7 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
     private final HashMap<String, Double> accountBalances = new HashMap<>();
     @Getter
     @Setter
-    private boolean orderSinceLastBalance = false;
+    private boolean orderSinceLastBalance = true;
 
     public BaseExchangeTrader(String exchangeName, String assetCurrency, String intermediateCurrency, ExchangeCredentials credentials, boolean isNative) {
         super(exchangeName, assetCurrency, intermediateCurrency);

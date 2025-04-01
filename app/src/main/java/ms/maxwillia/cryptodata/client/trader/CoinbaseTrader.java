@@ -281,6 +281,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                      logger.error("Failed to parse order response: {}", e.getMessage());
                      transaction.setStatus(TransactionStatus.EXECUTION_ERROR);
                  }
+        setOrderSinceLastBalance(true);
         addTransaction(transaction);
         return transaction;
     }
@@ -382,7 +383,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
             return new HashMap<>();
         }
 
-        if (isOrderSinceLastBalance()) {
+        if (!isOrderSinceLastBalance()) {
             return getAccountBalances();
         }
         if (getAccountIds().size() != getCurrencies().size()) {
@@ -413,7 +414,7 @@ public class CoinbaseTrader extends BaseExchangeTrader {
                 logger.error("Failed to fetch balances: {}", e.getMessage());
             }
         }
-        setOrderSinceLastBalance(true);
+        setOrderSinceLastBalance(false);
         return getAccountBalances();
     }
 

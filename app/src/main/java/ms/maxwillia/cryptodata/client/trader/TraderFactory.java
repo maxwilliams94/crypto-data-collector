@@ -27,7 +27,8 @@ public class TraderFactory {
      */
     public static ExchangeTrader createTrader(
             String exchangeName, 
-            String currency, 
+            String currency,
+            String intemediateCurrency,
             String apiKeyPath) throws IllegalArgumentException, IOException {
         
         // Validate inputs
@@ -47,12 +48,12 @@ public class TraderFactory {
             case "coinbase":
                 return createCoinbaseTrader(currency, apiKeyPath);
             case "firi":
-                throw new IllegalArgumentException("Firi trader not yet implemented");
+                return createFiriTrader(currency, intemediateCurrency, apiKeyPath);
             default:
                 throw new IllegalArgumentException("Unsupported exchange: " + exchangeName);
         }
     }
-    
+
     /**
      * Creates a Coinbase trader instance
      * @param currency The currency to trade
@@ -61,12 +62,30 @@ public class TraderFactory {
      * @throws IOException if the API keys cannot be loaded
      */
     private static CoinbaseTrader createCoinbaseTrader(
-            String currency, 
+            String currency,
             String apiKeyPath) throws IOException {
 
         ExchangeCredentials credentials = ExchangeCredentials.loadFromFile(Path.of(apiKeyPath).toAbsolutePath());
 
         return new CoinbaseTrader(currency, null, credentials);
+    }
+
+    /**
+     * Creates a Firi trader instance
+     * @param currency The currency to trade
+     * @param intermediateCurrency The intermediate currency to use (e.g USDC)
+     * @param apiKeyPath Path to the API key file
+     * @return FiriTrader instance
+     * @throws IOException if the API keys cannot be loaded
+     */
+    private static FiriTrader createFiriTrader(
+            String currency,
+            String intermediateCurrency,
+            String apiKeyPath) throws IOException {
+
+        ExchangeCredentials credentials = ExchangeCredentials.loadFromFile(Path.of(apiKeyPath).toAbsolutePath());
+
+        return new FiriTrader(currency, intermediateCurrency, credentials);
     }
     
     /**

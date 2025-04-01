@@ -9,6 +9,8 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import ms.maxwillia.cryptodata.apis.coinbase.v3.api.AccountsApi;
+import ms.maxwillia.cryptodata.apis.firi.v2.invoker.ApiException;
 import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.client.mapper.coinbase.CoinbaseOrderMapper;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
@@ -21,16 +23,12 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.money.Monetary;
 import javax.money.MonetaryAmount;
-import java.io.IOException;
-import java.net.URI;
-import java.time.Instant;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import ms.maxwillia.cryptodata.apis.firi.v2.invoker.ApiClient;
-import ms.maxwillia.cryptodata.apis.firi.v2.invoker.auth.ApiKeyAuth;
+
+import ms.maxwillia.cryptodata.apis.firi.v2.api.MarketsApi;
+import ms.maxwillia.cryptodata.apis.firi.v2.api.BalanceApi;
 
 
 public class FiriTrader extends BaseExchangeTrader {
@@ -40,45 +38,30 @@ public class FiriTrader extends BaseExchangeTrader {
         super("Firi", assetCurrency, intermediateCurrency, credentials, false);
         setSettlementCurrency(Monetary.getCurrency("NOK"));
         apiClient = new ApiClient();
+        apiClient.addDefaultHeader("firi-access-key", credentials.getPrivateKey());
     }
 
     public void setApiRoot(HttpUrl apiRoot) {
         this.apiClient.setBasePath(apiRoot.toString());
     }
 
-    protected String generateJWT(String requestMethod, String requestUrl) throws Exception {
-        // create header object
-        Map<String, Object> header = new HashMap<>();
-        header.put("alg", "ES256");
-        header.put("typ", "JWT");
-        header.put("kid", credentials.getName());
-        header.put("nonce", String.valueOf(Instant.now().getEpochSecond()));
-
-        // create uri string for current request
-        String uri = requestMethod + " " + requestUrl;
-
-        // create data object
-        Map<String, Object> data = new HashMap<>();
-        data.put("iss", "cdp");
-        data.put("nbf", Instant.now().getEpochSecond());
-        data.put("exp", Instant.now().getEpochSecond() + 120);
-        data.put("sub", credentials.getName());
-        data.put("uri", uri);
-
-        // create JWT
-        JWTClaimsSet.Builder claimsSetBuilder = new JWTClaimsSet.Builder();
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
-            claimsSetBuilder.claim(entry.getKey(), entry.getValue());
+    @Override
+    public boolean connect() {
+        try {
+            BalanceApi balanceApi = new BalanceApi(apiClient);
+            balanceApi.getBalances();
+            isConnected = true;
+            setStatus(ClientStatus.CONNECTED);
+            return true;
+        } catch (ApiException e) {
+            logger.error("Failed to connect to exchange.", e);
+            return false;
         }
-        JWTClaimsSet claimsSet = claimsSetBuilder.build();
+    }
 
-        JWSHeader jwsHeader = new JWSHeader.Builder(JWSAlgorithm.ES256).customParams(header).build();
-        SignedJWT signedJWT = new SignedJWT(jwsHeader, claimsSet);
-
-        JWSSigner signer = new ECDSASigner(ecPrivateKey);
-        signedJWT.sign(signer);
-
-        return signedJWT.serialize();
+    @Override
+    public boolean initialize() {
+        return true;
     }
 
     @Override
@@ -87,22 +70,15 @@ public class FiriTrader extends BaseExchangeTrader {
         setStatus(ClientStatus.STOPPED);
     }
 
-    public Transaction marketBuy(double targetPrice, double quantity, String clientOrderId) {
-        return executeOrder(TransactionType.MARKET, TransactionSide.BUY, targetPrice, quantity, clientOrderId);
-    }
 
     @Override
     public Transaction marketBuy(double targetPrice, double quantity) {
-        return executeOrder(TransactionType.MARKET, TransactionSide.BUY, targetPrice, quantity, generateClientOrderId());
-    }
-
-    public Transaction marketSell(double targetPrice, double quantity, String clientOrderId) {
-        return executeOrder(TransactionType.MARKET, TransactionSide.SELL, targetPrice, quantity, clientOrderId);
+        return executeOrder(TransactionType.MARKET, TransactionSide.BUY, targetPrice, quantity,"");
     }
 
     @Override
     public Transaction marketSell(double targetPrice, double quantity) {
-        return executeOrder(TransactionType.MARKET, TransactionSide.SELL, targetPrice, quantity, generateClientOrderId());
+        return executeOrder(TransactionType.MARKET, TransactionSide.SELL, targetPrice, quantity, "");
     }
 
     @Override
@@ -113,6 +89,42 @@ public class FiriTrader extends BaseExchangeTrader {
     @Nullable
     public Transaction limitSell(double targetPrice, double quantity) { return null; }
 
+    @Override
+    public boolean walletWithdraw(MonetaryAmount currency, String walletAddress) {
+        return false;
+    }
+
+    @Override
+    public HashMap<String, Double> getBalances() {
+        if (!isConnected) {
+            logger.error("Cannot fetch balances - not connected");
+            return new HashMap<>();
+        }
+
+        if (!isOrderSinceLastBalance()) {
+            return getAccountBalances();
+        }
+
+        try {
+            BalanceApi balanceApi = new BalanceApi(apiClient);
+            var balances = balanceApi.getBalances();
+            balances.forEach(balance -> {
+                var currency = balance.getCurrency();
+                var available = balance.getAvailable();
+                logger.debug("{} : {}", currency, available);
+                if (currency != null && available != null) {
+                    if (getCurrencies().contains(currency)) getAccountBalances().put(currency, Double.parseDouble(available));
+                }
+            });
+        } catch (ApiException e) {
+            logger.error("Could not get Balances", e);
+            getAccountBalances().clear();
+            return getAccountBalances();
+        }
+        return getAccountBalances();
+
+    }
+
     public String getExchangeTradePair() {
         return "%s%s".formatted(getAssetCurrency().getCurrencyCode(), getSettlementCurrency().getCurrencyCode());
     }
@@ -122,4 +134,8 @@ public class FiriTrader extends BaseExchangeTrader {
         return "%s%s".formatted(getAssetCurrency().getCurrencyCode(), getIntermediateCurrency().getCurrencyCode());
     }
 
+    @Override
+    Transaction executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity, String clientOrderId) {
+        return null;
+    }
 }

@@ -227,7 +227,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Trade'
-  /balance:
+  /balances:
     get:
       summary: Retrieve account balances
       description: Fetch the current balances for all currencies in the user's account.

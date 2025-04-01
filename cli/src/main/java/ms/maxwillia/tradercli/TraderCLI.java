@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
+
+
 /**
  * Example application showing how to use the CoinbaseTrader
  */
@@ -20,18 +22,21 @@ public class TraderCLI {
     
     public static void main(String[] args) {
         if (args.length < 2) {
-            logger.error("Usage: TradingExample <currency> <api-key-path>");
+            logger.error("Usage: TradingExample <exchange> <currency> <intermediate> <api-key-path>");
             System.exit(1);
         }
-        
-        String currency = args[0];
-        String apiKeyPath = args[1];
+
+        String exchange = args[0];
+        String currency = args[1];
+        String intermediate = args[2];
+        String apiKeyPath = args[3];
 
         try {
             // Create trader
             ExchangeTrader trader = TraderFactory.createTrader(
-                    "Coinbase", 
-                    currency, 
+                    exchange,
+                    currency,
+                    intermediate,
                     apiKeyPath);
 
             // Initialize and connect
@@ -46,14 +51,7 @@ public class TraderCLI {
             }
 
             logger.info("Connected to {} for {}", trader.getExchangeName(), trader.getExchangeTradePair());
-            
-            // Get account balances
-            HashMap<String, Double> balances = trader.getBalances();
-            logger.info("Current Balances:");
-            for (Map.Entry<String, Double> entry : balances.entrySet()) {
-                logger.info("{}: %{}", entry.getKey(), entry.getValue());
-            }
-            
+
             // Interactive trading menu
             traderMenu(trader);
             

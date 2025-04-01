@@ -16,7 +16,7 @@ public abstract class BaseExchangeClient {
 
     @Getter
     @Setter
-    private CurrencyUnit settlementCurrency = Monetary.getCurrency("USDC");
+    private CurrencyUnit settlementCurrency = Monetary.getCurrency("USD");
 
     @Getter
     private final CurrencyUnit assetCurrency;

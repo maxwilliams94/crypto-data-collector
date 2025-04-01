@@ -1,6 +1,7 @@
 plugins {
     java
     application
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "ms.maxwillia.tradercli"
@@ -35,8 +36,4 @@ tasks.jar {
     manifest {
         attributes["Main-Class"] = "ms.maxwillia.tradercli.TraderCLI"
     }
-    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) }) {
-        exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
