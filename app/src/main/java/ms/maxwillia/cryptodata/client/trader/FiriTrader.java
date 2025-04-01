@@ -17,6 +17,9 @@ import ms.maxwillia.cryptodata.apis.firi.v2.invoker.ApiClient;
 
 import ms.maxwillia.cryptodata.apis.firi.v2.api.BalanceApi;
 import ms.maxwillia.cryptodata.apis.firi.v2.api.WalletApi;
+import ms.maxwillia.cryptodata.apis.firi.v2.api.OrderApi;
+
+import ms.maxwillia.cryptodata.apis.firi.v2.model.NewOrder;
 
 
 public class FiriTrader extends BaseExchangeTrader {

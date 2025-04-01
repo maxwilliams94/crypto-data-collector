@@ -1,0 +1,82 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/accounts"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "accounts": [
+        {
+          "uuid": "763e6821-fe49-51b1-aac2-b556b1e6b29b",
+          "name": "ETH2 Wallet",
+          "currency": "ETH2",
+          "available_balance": {
+            "value": "0",
+            "currency": "ETH2"
+          },
+          "default": true,
+          "active": true,
+          "created_at": "2021-12-12T19:22:32.175Z",
+          "updated_at": "2021-12-12T19:22:32.175Z",
+          "deleted_at": null,
+          "type": "ACCOUNT_TYPE_CRYPTO",
+          "ready": false,
+          "hold": {
+            "value": "0",
+            "currency": "ETH2"
+          },
+          "retail_portfolio_id": "f3fc7fce-da1d-57b8-a073-b0bab28bb12f",
+          "platform": "ACCOUNT_PLATFORM_CONSUMER"
+        },
+        {
+          "uuid": "9bcb2b74-f6b2-5db1-9330-d39b9875b2c8",
+          "name": "JASMY Wallet",
+          "currency": "JASMY",
+          "available_balance": {
+            "value": "0",
+            "currency": "JASMY"
+          },
+          "default": true,
+          "active": true,
+          "created_at": "2021-10-12T21:05:04.096Z",
+          "updated_at": "2021-10-12T21:05:04.096Z",
+          "deleted_at": null,
+          "type": "ACCOUNT_TYPE_CRYPTO",
+          "ready": true,
+          "hold": {
+            "value": "0",
+            "currency": "JASMY"
+          },
+          "retail_portfolio_id": "f3fc7fce-da1d-57b8-a073-b0bab28bb12f",
+          "platform": "ACCOUNT_PLATFORM_CONSUMER"
+        },
+        {
+          "uuid": "a2842678-08e1-547d-9780-c1f16eff41c7",
+          "name": "QUICK Wallet",
+          "currency": "QUICK",
+          "available_balance": {
+            "value": "0",
+            "currency": "QUICK"
+          },
+          "default": true,
+          "active": true,
+          "created_at": "2021-10-12T21:05:03.542Z",
+          "updated_at": "2021-10-12T21:05:03.542Z",
+          "deleted_at": null,
+          "type": "ACCOUNT_TYPE_CRYPTO",
+          "ready": true,
+          "hold": {
+            "value": "0",
+            "currency": "QUICK"
+          },
+          "retail_portfolio_id": "f3fc7fce-da1d-57b8-a073-b0bab28bb12f",
+          "platform": "ACCOUNT_PLATFORM_CONSUMER"
+        }
+      ]
+    }
+  }
+}
