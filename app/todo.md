@@ -38,6 +38,9 @@
   - [X] market orders
 - [ ] get order fill details post execution for accurate accounting
 - [X] CLI/test bed for coinbase trader
+- [ ] Accounts/Balances Generated REST API
+- [ ] Execute Order using Generated REST API
+- [ ] Handle failed orders
 - [ ] Wallet withdrawal
 
 #### CLI
@@ -87,5 +90,5 @@
 - [ ] CoinbaseWebSocketClient - allow websocket URL to be configurable with sensible default
 - [X] OpenAPI specification for Coinbase
 - [X] OpenAPI specification for Firi
-- [ ] Implement WebAPI from openapi generated classes
+- [X] Implement WebAPI from openapi generated classes
 - [ ] Move to HMAC_encrypted_secretKey for Firi authentication

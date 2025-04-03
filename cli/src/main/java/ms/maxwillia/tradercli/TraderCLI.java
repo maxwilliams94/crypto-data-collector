@@ -136,8 +136,10 @@ public class TraderCLI {
     }
     
     private static void executeMarketBuy(ExchangeTrader trader, Scanner scanner) {
+        double spotPrice;
         try {
-            System.out.printf("%s spot price: %.2f%n", trader.getTradePair(), trader.getSpotAssetPrice(TransactionSide.BUY));
+            spotPrice = trader.getSpotAssetPrice(TransactionSide.BUY);
+            System.out.printf("%s spot price: %.2f%n", trader.getTradePair(), spotPrice);
         } catch (Exception e) {
             logger.error("Error getting spot bid", e);
             return;
@@ -147,7 +149,13 @@ public class TraderCLI {
             double amount = Double.parseDouble(scanner.nextLine());
 
             // For market buys, the price is approximate
-            System.out.printf("Executing market buy %.2f %s%n", amount, trader.getTradePair());
+            System.out.printf("Executing market buy %.8f %s (~%.2f)%n", amount, trader.getTradePair(), amount * spotPrice);
+            System.out.printf("Executing market sell %.8f %s%n", amount, trader.getTradePair());
+            System.out.print("Confirm order: (y/n)");
+            if (!scanner.nextLine().equalsIgnoreCase("y")) {
+                logger.info("Buy Order cancelled");
+                return;
+            }
             var transactions = trader.marketBuy(amount);
             if (trader.canTrade()) {
                 var statuses = transactions.stream().map(Transaction::getStatus).filter(s -> s.equals(TransactionStatus.EXECUTED) || s.equals(TransactionStatus.PREVIEW_SUCCESS)).toList();
@@ -166,8 +174,10 @@ public class TraderCLI {
 }
     
     private static void executeMarketSell(ExchangeTrader trader, Scanner scanner) {
+        double spotPrice;
         try {
-            System.out.printf("%s spot price: %.2f%n", trader.getTradePair(), trader.getSpotAssetPrice(TransactionSide.SELL));
+            spotPrice = trader.getSpotAssetPrice(TransactionSide.SELL);
+            System.out.printf("%s spot price: %.2f%n", trader.getTradePair(), spotPrice);
         } catch (Exception e) {
             logger.error("Error getting spot ask", e);
             return;
@@ -175,14 +185,14 @@ public class TraderCLI {
         try {
             System.out.printf("Enter %s amount to sell: ", trader.getTradePair());
             double amount = Double.parseDouble(scanner.nextLine());
-            
-            // For market sells, the price is approximate
-            System.out.print("Enter approximate price per unit: ");
-            double price = Double.parseDouble(scanner.nextLine());
 
-            System.out.printf("Executing market sell %.2f %s%n", amount, trader.getTradePair());
+            System.out.printf("Executing market sell %.8f %s (~%.2f)%n", amount, trader.getTradePair(), amount * spotPrice);
+            System.out.print("Confirm order: (y/n)");
+            if (!scanner.nextLine().equalsIgnoreCase("y")) {
+                logger.info("Sell Order cancelled");
+                return;
+            }
             var transactions = trader.marketSell(amount);
-
             if (trader.canTrade()) {
                 var statuses = transactions.stream().map(Transaction::getStatus).filter(s -> s.equals(TransactionStatus.EXECUTED) || s.equals(TransactionStatus.PREVIEW_SUCCESS)).toList();
                 if (statuses.size() == transactions.size()) {

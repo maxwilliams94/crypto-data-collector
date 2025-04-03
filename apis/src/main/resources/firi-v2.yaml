@@ -54,6 +54,13 @@ paths:
                 $ref: "#/components/schemas/CreatedOrder"
         "400":
           description: "Invalid order parameters"
+        "401":
+            description: "Unauthorized"
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Error"
+
   /orders/history:
     get:
       summary: "List All Open and Closed Orders"
@@ -580,6 +587,12 @@ components:
                 type: string
                 format: date-time
                 description: The timestamp when the withdrawal status was last updated
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: "Error message"
   securitySchemes:
     AccessKey:
       type: apiKey
