@@ -15,13 +15,11 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import ms.maxwillia.cryptodata.apis.coinbase.v3.model.PriceLevel;
 import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.client.mapper.coinbase.CoinbaseOrderMapper;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
-import ms.maxwillia.cryptodata.model.Transaction;
-import ms.maxwillia.cryptodata.model.TransactionSide;
-import ms.maxwillia.cryptodata.model.TransactionStatus;
-import ms.maxwillia.cryptodata.model.TransactionType;
+import ms.maxwillia.cryptodata.model.*;
 import okhttp3.*;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,11 +27,17 @@ import javax.money.Monetary;
 import javax.money.MonetaryAmount;
 import java.util.concurrent.TimeUnit;
 
+import ms.maxwillia.cryptodata.apis.coinbase.v3.invoker.ApiClient;
+import ms.maxwillia.cryptodata.apis.coinbase.v3.invoker.ApiException;
+import ms.maxwillia.cryptodata.apis.coinbase.v3.api.ProductsApi;
+import ms.maxwillia.cryptodata.apis.coinbase.v3.model.PriceBook;
+
 
 class CoinbaseTrader extends BaseExchangeTrader {
     private HttpUrl COINBASE_API_ROOT = HttpUrl.parse("https://api.coinbase.com");
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
+    private final ApiClient apiClient;
 
 
     public CoinbaseTrader(String assetCurrency, String intermediateCurrency, ExchangeCredentials credentials) {
@@ -45,6 +49,7 @@ class CoinbaseTrader extends BaseExchangeTrader {
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .build();
         this.objectMapper = new ObjectMapper();
+        this.apiClient = new ApiClient();
     }
 
     private static String getSchemelessURL(String url) {
@@ -53,6 +58,7 @@ class CoinbaseTrader extends BaseExchangeTrader {
 
     public void setApiRoot(HttpUrl apiRoot) {
         this.COINBASE_API_ROOT = apiRoot;
+        this.apiClient.setBasePath(apiRoot.toString() + "api/v3");
     }
 
     protected String generateJWT(String requestMethod, String requestUrl) throws Exception {
@@ -87,6 +93,7 @@ class CoinbaseTrader extends BaseExchangeTrader {
         JWSSigner signer = new ECDSASigner(ecPrivateKey);
         signedJWT.sign(signer);
 
+        logger.debug("generateJWT for {}", uri);
         return signedJWT.serialize();
     }
 
@@ -127,31 +134,53 @@ class CoinbaseTrader extends BaseExchangeTrader {
         setStatus(ClientStatus.STOPPED);
     }
 
-    public Transaction marketBuy(double targetPrice, double quantity, String clientOrderId) {
-        return executeOrder(TransactionType.MARKET, TransactionSide.BUY, targetPrice, quantity, clientOrderId);
+    public List<Transaction> marketBuy(double quantity, String clientOrderId) {
+        try {
+            return List.of(executeOrder(TransactionType.MARKET, TransactionSide.BUY, CurrencyType.ASSET, getSpotAssetPrice(TransactionSide.BUY), quantity, clientOrderId));
+        } catch (Exception e) {
+            logger.error("Failed to execute order", e);
+            return List.of();
+        }
     }
 
     @Override
-    public Transaction marketBuy(double targetPrice, double quantity) {
-        return executeOrder(TransactionType.MARKET, TransactionSide.BUY, targetPrice, quantity, generateClientOrderId());
+    public List<Transaction> marketBuy(double quantity) {
+        try {
+            return List.of(executeOrder(TransactionType.MARKET, TransactionSide.BUY, CurrencyType.ASSET, getSpotAssetPrice(TransactionSide.BUY), quantity, generateClientOrderId()));
+        } catch (Exception e) {
+            logger.error("Failed to execute order", e);
+            return List.of();
+        }
     }
 
-    public Transaction marketSell(double targetPrice, double quantity, String clientOrderId) {
-        return executeOrder(TransactionType.MARKET, TransactionSide.SELL, targetPrice, quantity, clientOrderId);
+    public List<Transaction> marketSell(double quantity, String clientOrderId) {
+        try {
+            return List.of(executeOrder(TransactionType.MARKET, TransactionSide.SELL, CurrencyType.ASSET, getSpotAssetPrice(TransactionSide.SELL), quantity, clientOrderId));
+        } catch (Exception e) {
+            logger.error("Failed to execute order", e);
+            return List.of();
+        }
     }
 
     @Override
-    public Transaction marketSell(double targetPrice, double quantity) {
-        return executeOrder(TransactionType.MARKET, TransactionSide.SELL, targetPrice, quantity, generateClientOrderId());
+    public List<Transaction> marketSell(double quantity) {
+        try {
+        return List.of(executeOrder(TransactionType.MARKET, TransactionSide.SELL, CurrencyType.ASSET, getSpotAssetPrice(TransactionSide.SELL), quantity, generateClientOrderId()));
+        } catch (Exception e) {
+            logger.error("Failed to execute order", e);
+            return List.of();
+        }
     }
 
     @Override
     @Nullable
-    public Transaction limitBuy(double targetPrice, double quantity) { return null; }
+    public List<Transaction> limitBuy(double targetPrice, double quantity) {
+        return List.of();
+    }
 
     @Override
     @Nullable
-    public Transaction limitSell(double targetPrice, double quantity) { return null; }
+    public List<Transaction> limitSell(double targetPrice, double quantity) { return null; }
 
     /**
      * Executes an order on the Coinbase exchange.
@@ -162,16 +191,14 @@ class CoinbaseTrader extends BaseExchangeTrader {
      * @param quantity The quantity for the order (e.g., BTC).
      * @return Transaction if the order was executed successfully, null otherwise.
      */
-    @Nullable
-    Transaction executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity, String clientOrderId) {
+    Transaction executeOrder(TransactionType orderType, TransactionSide side, CurrencyType currencyType, double price, double quantity, String clientOrderId) {
         logger.info("{}: executing {} {} {} order - Price: {}, Quantity: {}", getTradePair(), isPreviewTrade() ? "preview" : "", orderType, side, price, quantity);
         if (!isConnected) {
             logger.error("Cannot execute order - not connected");
-            return null;
+            return Transaction.builder().exchange("coinbase").id(clientOrderId).status(TransactionStatus.REQUEST_ERROR).build();
         }
 
         Request request;
-
         Transaction transaction = Transaction.builder()
                 .id(clientOrderId)
                 .exchange(getExchangeName())
@@ -428,6 +455,39 @@ class CoinbaseTrader extends BaseExchangeTrader {
         return getAccountBalances();
     }
 
+    private double getBidOrAsk(TransactionSide side, String pair) throws ApiException {
+        ProductsApi productsApi = new ProductsApi(apiClient);
+        productsApi.getApiClient().setBearerToken(jwtFromApi(productsApi.getBestBidAskCall(List.of(pair), null)));
+        PriceBook priceBook;
+        try {
+            priceBook = productsApi.getBestBidAsk(List.of(pair)).getPricebooks().getFirst();
+            if (Objects.isNull(priceBook)) {
+                throw new ApiException(400, "No price book found");
+            }
+            logger.trace(priceBook.toString());
+        } catch (Exception e) {
+            logger.error("Exception during ProductsApi.getBestBidAsk {}",pair, e);
+            throw e;
+        }
+        PriceLevel level = null;
+        try {
+            level = side.equals(TransactionSide.BUY) ? priceBook.getBids().getFirst() : priceBook.getAsks().getFirst();
+        } catch (Exception e) {
+            logger.error("PriceLevel format error {}", level, e);
+            throw e;
+        }
+        return Double.parseDouble(level.getPrice());
+
+    }
+
+    public double getSpotAssetPrice(TransactionSide side) throws Exception {
+        return getBidOrAsk(side, getExchangeTradePair());
+    }
+
+    public double getSpotIntermediatePrice(TransactionSide side) throws Exception {
+        return 0;
+    }
+
     public String getExchangeTradePair() {
         return "%s-%s".formatted(getAssetCurrency().getCurrencyCode(), getSettlementCurrency().getCurrencyCode());
     }
@@ -435,6 +495,18 @@ class CoinbaseTrader extends BaseExchangeTrader {
     @Override
     public String getExchangeIntermediatePair() {
         return "";
+    }
+
+    private String jwtFromApi(Call apiCall) {
+        String method = apiCall.request().method();
+        HttpUrl url = apiCall.request().url();
+        String jwtUrl = url.host() + url.encodedPath();
+        try {
+            return this.generateJWT(method, jwtUrl);
+        } catch (Exception e) {
+            logger.error("Failed to generate JWT for {}: {}", method, jwtUrl, e);
+            return "";
+        }
     }
 
 }

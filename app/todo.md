@@ -22,6 +22,7 @@
 - [X] Booking/trading interfaces and parent classes
 - [X] Rework Transaction fields (combined request and execution price fields + logging)
 - [X] Redefine BaseExchangeClient to properly define currency pairs as well as a native currency (if relevant)
+- [ ] FundCheck
 
 #### Coinbase
 - [X] MarketBuy
@@ -36,7 +37,7 @@
 - [X] responseMapper
   - [X] market orders
 - [ ] get order fill details post execution for accurate accounting
-- [ ] CLI/test bed for coinbase trader
+- [X] CLI/test bed for coinbase trader
 - [ ] Wallet withdrawal
 
 #### CLI
@@ -44,14 +45,14 @@
 - [ ] Save transactions to file
 
 #### Firi
-- [ ] MarketBuy with intermediate sell
-- [ ] MarketSell with intermediate buy
-- [ ] Authentication
-- [ ] Preview order request for testing
+- [X] MarketBuy with intermediate sell
+- [X] MarketSell with intermediate buy
+- [X] Authentication (simple)
+- [X] MarketBuy intermediate at unknown price
+- [X] Testing
 - [ ] handle successful order
 - [ ] handle failed order
 - [ ] ~~requestMapper~~
-- [ ] responseMapper
 - [ ] get order fill details post execution for accurate accounting
 
 
@@ -59,7 +60,7 @@
 - [ ] Design for detecting arbitrage opportunities
 - [ ] Springboot integration
 - [X] Data collection interfaces and parent classes split into distinct collection classes
-- [ ] Make sure that new interfaces are being used
+- [X] Make sure that new interfaces are being used
 - [ ] `offerTick` compatibility with `BlockingQueue` and `AtomicDouble`
 - [ ] Arbitrage runner class launching collection instances and empty booking instances
 - [ ] arbitrage detection
@@ -72,8 +73,11 @@
 - [ ] ERROR state handling for Coinbase websocket
 - [X] Allow choice of symbols to be defined at runtime
 - [X] File name for CSV storage from serial time to ISO time
+- [ ] Batched rebalancing
+- [ ] Connection pooling/re-emptive JWT generation in the background for coinbase
 
 ## Clean-up/Refactor
+- [ ] TransactionStatus - cleanup to properly reflect CREATED - SUBMITTED - EXECUTED lifecycle
 - [ ] use Money class for all currency values
 - [ ] Reconnection logic / implementation 
 - [ ] States/ClientStatus needs cleaning up

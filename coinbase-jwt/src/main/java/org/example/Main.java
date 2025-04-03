@@ -36,8 +36,8 @@ public class Main {
         header.put("nonce", String.valueOf(Instant.now().getEpochSecond()));
 
         // create uri string for current request
-        String requestMethod = "GET";
-        String url = "api.coinbase.com/api/v3/brokerage/accounts";
+        String requestMethod = args[0];
+        String url = args[1];
         String uri = requestMethod + " " + url;
 
         // create data object

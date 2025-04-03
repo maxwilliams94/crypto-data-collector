@@ -5,6 +5,7 @@ import lombok.Setter;
 import ms.maxwillia.cryptodata.client.BaseExchangeClient;
 import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
+import ms.maxwillia.cryptodata.model.CurrencyType;
 import ms.maxwillia.cryptodata.model.Transaction;
 import ms.maxwillia.cryptodata.model.TransactionSide;
 import ms.maxwillia.cryptodata.model.TransactionType;
@@ -124,11 +125,11 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
     }
 
     public String getTradePair() {
-        return String.format("%s%s", this.getAssetCurrency(), this.getSettlementCurrency());
+        return String.format("%s%s", this.getAssetCurrency().getCurrencyCode(), this.getSettlementCurrency().getCurrencyCode());
     }
 
     public String getIntermediatePair() {
-        return String.format("%s%s", this.getAssetCurrency().getCurrencyCode(), this.getIntermediateCurrency().getCurrencyCode());
+        return String.format("%s%s", this.getIntermediateCurrency().getCurrencyCode(), this.getSettlementCurrency().getCurrencyCode());
     }
 
     public List<String> getCurrencies() {
@@ -158,7 +159,7 @@ public abstract class BaseExchangeTrader extends BaseExchangeClient implements E
         }
     }
 
-    abstract Transaction executeOrder(TransactionType orderType, TransactionSide side, double price, double quantity, String clientOrderId);
+    abstract Transaction executeOrder(TransactionType orderType, TransactionSide side, CurrencyType currencyType, double price, double quantity, String clientOrderId);
 
     abstract String getAssetWalletAddress();
 

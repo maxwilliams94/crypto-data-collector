@@ -53,7 +53,6 @@ dependencies {
     implementation("io.gsonfire:gson-fire:1.8.5")
     implementation("com.google.code.findbugs:jsr305:3.0.2")
 
-
     // Testing dependencies
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")

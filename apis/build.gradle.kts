@@ -14,6 +14,7 @@ dependencies {
     // Dependencies required by the generated code.
     implementation("com.squareup.okhttp3:okhttp:4.9.2")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.13.4.2")
+    implementation("javax.annotation:javax.annotation-api:1.3.2")
 }
 
 tasks.register<org.openapitools.generator.gradle.plugin.tasks.GenerateTask>("generateFiriV2") {

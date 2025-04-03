@@ -15,6 +15,8 @@ paths:
       tags:
         - Accounts
       operationId: listAccounts
+      security:
+        - jwt: []
       parameters:
         - name: limit
           in: query
@@ -75,6 +77,8 @@ paths:
       tags:
         - Products
       operationId: getBestBidAsk
+      security:
+        - jwt: []
       parameters:
         - name: product_ids
           in: query
@@ -91,7 +95,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetBestBidAskResponse'
+                $ref: '#/components/schemas/Pricebooks'
 
   /brokerage/product_book:
     get:
@@ -133,8 +137,8 @@ paths:
       summary: Get Market Trades
       description: Get snapshot information by product ID about the last trades (ticks) and best bid/ask.
       tags:
-        - Market
-      operationId: getMarketTrades
+        - Products
+      operationId: getProductTicker
       parameters:
         - name: product_id
           in: path
@@ -172,6 +176,7 @@ paths:
     post:
       summary: Create an order
       description: Create an order with a specified product_id (asset-pair), side (buy/sell), etc.
+      operationId: createOrder
       tags:
         - Orders
       requestBody:
@@ -213,9 +218,9 @@ paths:
     get:
       summary: List Orders
       description: Get a list of orders filtered by optional query parameters.
+      operationId: listOrders
       tags:
         - Orders
-      operationId: listOrders
       parameters:
         - name: order_ids
           in: query
@@ -367,6 +372,7 @@ paths:
     get:
       summary: List Fills
       description: Get a list of fills filtered by optional query parameters.
+      operationId: listFills
       tags:
         - Orders
       parameters:
@@ -440,6 +446,7 @@ paths:
     get:
       summary: Get Order
       description: Get a single order by order ID.
+      operationId: getOrderById
       tags:
         - Orders
       parameters:
@@ -713,20 +720,19 @@ components:
         - asks
         - time
 
-    GetBestBidAskResponse:
+    Pricebooks:
       type: object
       properties:
-        pricebooks:
-          type: array
-          items:
-            $ref: '#/components/schemas/PriceBook'
-      required:
-        - pricebooks
+          pricebooks:
+            type: array
+            description: List of price books for the requested products
+            items:
+                $ref: '#/components/schemas/PriceBook'
 
     GetProductBookResponse:
       type: object
       properties:
-        pricebook:
+        pricebooks:
           $ref: '#/components/schemas/PriceBook'
         last:
           type: string
@@ -1689,3 +1695,13 @@ components:
       required:
         - price
         - size
+
+  securitySchemes:
+    jwt:
+      type: http
+      scheme: bearer
+      description: |
+        JWT token for authentication. The token should be included in the `Authorization` header as follows:
+        ```
+        Authorization: Bearer <token>
+        ```
