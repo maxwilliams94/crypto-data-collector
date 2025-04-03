@@ -37,6 +37,7 @@ tasks.register<org.openapitools.generator.gradle.plugin.tasks.GenerateTask>("gen
     modelPackage.set("ms.maxwillia.cryptodata.apis.coinbase.v3.model")
     configOptions.put("dateLibrary", "java8")
     configOptions.put("library", "okhttp-gson")
+    configOptions.put("org.openapitools.codegen.utils.oncelogger.enabled", "true")
 }
 
 tasks.register("generateClasses") {

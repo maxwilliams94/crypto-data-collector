@@ -33,42 +33,50 @@ paths:
           required: false
           schema:
             type: string
-        - name: retail_portfolio_id
-          in: query
-          description: (Deprecated) Only returns the accounts matching the portfolio ID. Only applicable for legacy keys. CDP keys will default to the key's permissioned portfolio.
-          required: false
-          schema:
-            type: string
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListAccountsResponse'
+                $ref: "#/components/schemas/GetAccountsResponse"
+        "4XX":
+          description: Unexpected error response
+          content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/ErrorResponse"
 
   /brokerage/accounts/{account_uuid}:
     get:
       summary: Get Account
       description: Get information about an account, given an account UUID. Use List Accounts to find account UUIDs.
+      security:
+        - jwt: []
       tags:
         - Accounts
       operationId: getAccount
       parameters:
         - name: account_uuid
           in: path
-          description: The account's UUID.
+          description: The account"s UUID.
           required: true
           schema:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetAccountResponse'
+                $ref: "#/components/schemas/GetAccountResponse"
+        "4XX":
+          description: Unexpected error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /brokerage/best_bid_ask:
     get:
@@ -82,7 +90,7 @@ paths:
       parameters:
         - name: product_ids
           in: query
-          description: The list of trading pairs (e.g. 'BTC-USD').
+          description: The list of trading pairs (e.g. "BTC-USD").
           required: false
           schema:
             type: array
@@ -90,12 +98,12 @@ paths:
               type: string
           style: form
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Pricebooks'
+                $ref: "#/components/schemas/Pricebooks"
 
   /brokerage/product_book:
     get:
@@ -107,7 +115,7 @@ paths:
       parameters:
         - name: product_id
           in: query
-          description: The trading pair (e.g. 'BTC-USD').
+          description: The trading pair (e.g. "BTC-USD").
           required: true
           schema:
             type: string
@@ -125,12 +133,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetProductBookResponse'
+                $ref: "#/components/schemas/GetProductBookResponse"
 
   /brokerage/products/{product_id}/ticker:
     get:
@@ -142,7 +150,7 @@ paths:
       parameters:
         - name: product_id
           in: path
-          description: The trading pair (e.g. 'BTC-USD').
+          description: The trading pair (e.g. "BTC-USD").
           required: true
           schema:
             type: string
@@ -166,12 +174,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetMarketTradesResponse'
+                $ref: "#/components/schemas/GetMarketTradesResponse"
   /brokerage/orders:
     post:
       summary: Create an order
@@ -184,14 +192,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateOrderRequest'
+              $ref: "#/components/schemas/CreateOrderRequest"
       responses:
-        '200':
+        "200":
           description: Order created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateOrderResponse'
+                $ref: "#/components/schemas/CreateOrderResponse"
   /brokerage/orders/batch_cancel:
     post:
       summary: Batch Cancel Orders
@@ -204,15 +212,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BatchCancelOrdersRequest'
+              $ref: "#/components/schemas/BatchCancelOrdersRequest"
       responses:
-        '200':
+        "200":
           description: Successful batch cancel operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BatchCancelOrdersResponse'
-        '400':
+                $ref: "#/components/schemas/BatchCancelOrdersResponse"
+        "400":
           description: Invalid arguments
   /brokerage/orders/historical/batch:
     get:
@@ -325,7 +333,7 @@ paths:
             type: string
         - name: asset_filters
           in: query
-          description: Only returns the orders where the quote, base or underlying asset matches the provided asset filter(s) (e.g. 'BTC').
+          description: Only returns the orders where the quote, base or underlying asset matches the provided asset filter(s) (e.g. "BTC").
           schema:
             type: array
             items:
@@ -361,12 +369,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Successful operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrdersResponse'
+                $ref: "#/components/schemas/OrdersResponse"
 
   /brokerage/orders/historical/fills:
     get:
@@ -414,7 +422,7 @@ paths:
             format: date-time
         - name: retail_portfolio_id
           in: query
-          description: (Deprecated) Only fills matching this retail portfolio id are returned. Only applicable for legacy keys. CDP keys will default to the key's permissioned portfolio.
+          description: (Deprecated) Only fills matching this retail portfolio id are returned. Only applicable for legacy keys. CDP keys will default to the key"s permissioned portfolio.
           schema:
             type: string
         - name: limit
@@ -435,12 +443,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FillsResponse'
+                $ref: "#/components/schemas/FillsResponse"
 
   /brokerage/orders/historical/{order_id}:
     get:
@@ -468,12 +476,12 @@ paths:
             type: string
             default: USD
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponse'
+                $ref: "#/components/schemas/OrderResponse"
   /brokerage/orders/preview:
     post:
       summary: Preview an order
@@ -486,19 +494,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OrderPreviewRequest'
+              $ref: "#/components/schemas/OrderPreviewRequest"
       responses:
-        '200':
+        "200":
           description: Order preview successful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderPreviewResponse'
-        '400':
+                $ref: "#/components/schemas/OrderPreviewResponse"
+        "400":
           description: Bad request
-        '401':
+        "401":
           description: Unauthorized
-        '500':
+        "500":
           description: Internal server error
 
   /brokerage/time:
@@ -509,13 +517,13 @@ paths:
       description: Get the current time from the Coinbase Advanced API.
       operationId: getServerTime
       responses:
-        '200':
+        "200":
           description: Successful operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TimeResponse'
-        '500':
+                $ref: "#/components/schemas/TimeResponse"
+        "500":
           description: Internal server error
 
   /brokerage/market/product_book:
@@ -528,7 +536,7 @@ paths:
       parameters:
         - name: product_id
           in: query
-          description: The trading pair (e.g. 'BTC-USD').
+          description: The trading pair (e.g. "BTC-USD").
           required: true
           schema:
             type: string
@@ -547,23 +555,43 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Successful operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductBookResponse'
-        '400':
+                $ref: "#/components/schemas/ProductBookResponse"
+        "400":
           description: Bad request
-        '429':
+        "429":
           description: Rate limit exceeded
-        '500':
+        "500":
           description: Internal server error
       security: []  # No authentication required
 
 
 components:
   schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              type_url:
+                type: string
+              value:
+                type: string
+                format: byte
     Money:
       type: object
       properties:
@@ -596,7 +624,7 @@ components:
           description: Currency code for the account
           example: "BTC"
         available_balance:
-          $ref: '#/components/schemas/Money'
+          $ref: "#/components/schemas/Money"
         default:
           type: boolean
           description: Whether this is the default account
@@ -629,7 +657,7 @@ components:
           description: Whether the account is ready for use
           example: true
         hold:
-          $ref: '#/components/schemas/Money'
+          $ref: "#/components/schemas/Money"
         retail_portfolio_id:
           type: string
           format: uuid
@@ -648,13 +676,13 @@ components:
         - type
         - ready
 
-    ListAccountsResponse:
+    GetAccountsResponse:
       type: object
       properties:
         accounts:
           type: array
           items:
-            $ref: '#/components/schemas/Account'
+            $ref: "#/components/schemas/Account"
         has_next:
           type: boolean
           description: Whether there are more accounts that can be retrieved
@@ -674,7 +702,7 @@ components:
       type: object
       properties:
         account:
-          $ref: '#/components/schemas/Account'
+          $ref: "#/components/schemas/Account"
       required:
         - account
 
@@ -704,12 +732,12 @@ components:
           type: array
           description: List of bid price levels
           items:
-            $ref: '#/components/schemas/PriceLevel'
+            $ref: "#/components/schemas/PriceLevel"
         asks:
           type: array
           description: List of ask price levels
           items:
-            $ref: '#/components/schemas/PriceLevel'
+            $ref: "#/components/schemas/PriceLevel"
         time:
           type: string
           description: Timestamp of the price book
@@ -727,13 +755,13 @@ components:
             type: array
             description: List of price books for the requested products
             items:
-                $ref: '#/components/schemas/PriceBook'
+                $ref: "#/components/schemas/PriceBook"
 
     GetProductBookResponse:
       type: object
       properties:
         pricebooks:
-          $ref: '#/components/schemas/PriceBook'
+          $ref: "#/components/schemas/PriceBook"
         last:
           type: string
           description: Last traded price
@@ -798,7 +826,7 @@ components:
         trades:
           type: array
           items:
-            $ref: '#/components/schemas/Trade'
+            $ref: "#/components/schemas/Trade"
         best_bid:
           type: string
           description: Current best bid price
@@ -826,7 +854,7 @@ components:
           example: "0000-00000-000000"
         product_id:
           type: string
-          description: The trading pair (e.g. 'BTC-USD').
+          description: The trading pair (e.g. "BTC-USD").
           example: "BTC-USD"
         side:
           type: string
@@ -838,16 +866,16 @@ components:
           type: object
           description: The configuration of the order (e.g. the order type, size, etc).
           oneOf:
-            - $ref: '#/components/schemas/MarketMarketIoc'
-            - $ref: '#/components/schemas/SorLimitIoc'
-            - $ref: '#/components/schemas/LimitLimitGtc'
-            - $ref: '#/components/schemas/LimitLimitGtd'
-            - $ref: '#/components/schemas/LimitLimitFok'
-            - $ref: '#/components/schemas/TwapLimitGtd'
-            - $ref: '#/components/schemas/StopLimitStopLimitGtc'
-            - $ref: '#/components/schemas/StopLimitStopLimitGtd'
-            - $ref: '#/components/schemas/TriggerBracketGtc'
-            - $ref: '#/components/schemas/TriggerBracketGtd'
+            - $ref: "#/components/schemas/MarketMarketIoc"
+            - $ref: "#/components/schemas/SorLimitIoc"
+            - $ref: "#/components/schemas/LimitLimitGtc"
+            - $ref: "#/components/schemas/LimitLimitGtd"
+            - $ref: "#/components/schemas/LimitLimitFok"
+            - $ref: "#/components/schemas/TwapLimitGtd"
+            - $ref: "#/components/schemas/StopLimitStopLimitGtc"
+            - $ref: "#/components/schemas/StopLimitStopLimitGtd"
+            - $ref: "#/components/schemas/TriggerBracketGtc"
+            - $ref: "#/components/schemas/TriggerBracketGtd"
         retail_portfolio_id:
           type: string
           description: (Deprecated) The ID of the portfolio to associate the order with. Only applicable for legacy keys.
@@ -870,16 +898,16 @@ components:
           type: object
           description: The configuration of the attached order. Only TriggerBracketGtc is eligible.
           oneOf:
-            - $ref: '#/components/schemas/MarketMarketIoc'
-            - $ref: '#/components/schemas/SorLimitIoc'
-            - $ref: '#/components/schemas/LimitLimitGtc'
-            - $ref: '#/components/schemas/LimitLimitGtd'
-            - $ref: '#/components/schemas/LimitLimitFok'
-            - $ref: '#/components/schemas/TwapLimitGtd'
-            - $ref: '#/components/schemas/StopLimitStopLimitGtc'
-            - $ref: '#/components/schemas/StopLimitStopLimitGtd'
-            - $ref: '#/components/schemas/TriggerBracketGtc'
-            - $ref: '#/components/schemas/TriggerBracketGtd'
+            - $ref: "#/components/schemas/MarketMarketIoc"
+            - $ref: "#/components/schemas/SorLimitIoc"
+            - $ref: "#/components/schemas/LimitLimitGtc"
+            - $ref: "#/components/schemas/LimitLimitGtd"
+            - $ref: "#/components/schemas/LimitLimitFok"
+            - $ref: "#/components/schemas/TwapLimitGtd"
+            - $ref: "#/components/schemas/StopLimitStopLimitGtc"
+            - $ref: "#/components/schemas/StopLimitStopLimitGtd"
+            - $ref: "#/components/schemas/TriggerBracketGtc"
+            - $ref: "#/components/schemas/TriggerBracketGtd"
 
     MarketMarketIoc:
       type: object
@@ -1176,25 +1204,25 @@ components:
           description: Order configuration details
           properties:
             market_market_ioc:
-              $ref: '#/components/schemas/MarketMarketIoc/properties/market_market_ioc'
+              $ref: "#/components/schemas/MarketMarketIoc/properties/market_market_ioc"
             sor_limit_ioc:
-              $ref: '#/components/schemas/SorLimitIoc/properties/sor_limit_ioc'
+              $ref: "#/components/schemas/SorLimitIoc/properties/sor_limit_ioc"
             limit_limit_gtc:
-              $ref: '#/components/schemas/LimitLimitGtc/properties/limit_limit_gtc'
+              $ref: "#/components/schemas/LimitLimitGtc/properties/limit_limit_gtc"
             limit_limit_gtd:
-              $ref: '#/components/schemas/LimitLimitGtd/properties/limit_limit_gtd'
+              $ref: "#/components/schemas/LimitLimitGtd/properties/limit_limit_gtd"
             limit_limit_fok:
-              $ref: '#/components/schemas/LimitLimitFok/properties/limit_limit_fok'
+              $ref: "#/components/schemas/LimitLimitFok/properties/limit_limit_fok"
             twap_limit_gtd:
-              $ref: '#/components/schemas/TwapLimitGtd/properties/twap_limit_gtd'
+              $ref: "#/components/schemas/TwapLimitGtd/properties/twap_limit_gtd"
             stop_limit_stop_limit_gtc:
-              $ref: '#/components/schemas/StopLimitStopLimitGtc/properties/stop_limit_stop_limit_gtc'
+              $ref: "#/components/schemas/StopLimitStopLimitGtc/properties/stop_limit_stop_limit_gtc"
             stop_limit_stop_limit_gtd:
-              $ref: '#/components/schemas/StopLimitStopLimitGtd/properties/stop_limit_stop_limit_gtd'
+              $ref: "#/components/schemas/StopLimitStopLimitGtd/properties/stop_limit_stop_limit_gtd"
             trigger_bracket_gtc:
-              $ref: '#/components/schemas/TriggerBracketGtc/properties/trigger_bracket_gtc'
+              $ref: "#/components/schemas/TriggerBracketGtc/properties/trigger_bracket_gtc"
             trigger_bracket_gtd:
-              $ref: '#/components/schemas/TriggerBracketGtd/properties/trigger_bracket_gtd'
+              $ref: "#/components/schemas/TriggerBracketGtd/properties/trigger_bracket_gtd"
 
     BatchCancelOrdersRequest:
       type: object
@@ -1233,7 +1261,7 @@ components:
         orders:
           type: array
           items:
-            $ref: '#/components/schemas/Order'
+            $ref: "#/components/schemas/Order"
         sequence:
           type: string
         has_next:
@@ -1254,7 +1282,7 @@ components:
           type: string
           example: "2222-000000-000000"
         order_configuration:
-          $ref: '#/components/schemas/OrderConfiguration'
+          $ref: "#/components/schemas/OrderConfiguration"
         side:
           type: string
           enum:
@@ -1339,7 +1367,7 @@ components:
         edit_history:
           type: array
           items:
-            $ref: '#/components/schemas/EditHistory'
+            $ref: "#/components/schemas/EditHistory"
         leverage:
           type: string
         margin_type:
@@ -1354,7 +1382,7 @@ components:
           type: string
           format: uuid
         attached_order_configuration:
-          $ref: '#/components/schemas/OrderConfiguration'
+          $ref: "#/components/schemas/OrderConfiguration"
 
     EditHistory:
       type: object
@@ -1370,25 +1398,25 @@ components:
       type: object
       properties:
         market_market_ioc:
-          $ref: '#/components/schemas/MarketMarketIoc'
+          $ref: "#/components/schemas/MarketMarketIoc"
         sor_limit_ioc:
-          $ref: '#/components/schemas/SorLimitIoc'
+          $ref: "#/components/schemas/SorLimitIoc"
         limit_limit_gtc:
-          $ref: '#/components/schemas/LimitLimitGtc'
+          $ref: "#/components/schemas/LimitLimitGtc"
         limit_limit_gtd:
-          $ref: '#/components/schemas/LimitLimitGtd'
+          $ref: "#/components/schemas/LimitLimitGtd"
         limit_limit_fok:
-          $ref: '#/components/schemas/LimitLimitFok'
+          $ref: "#/components/schemas/LimitLimitFok"
         twap_limit_gtd:
-          $ref: '#/components/schemas/TwapLimitGtd'
+          $ref: "#/components/schemas/TwapLimitGtd"
         stop_limit_stop_limit_gtc:
-          $ref: '#/components/schemas/StopLimitStopLimitGtc'
+          $ref: "#/components/schemas/StopLimitStopLimitGtc"
         stop_limit_stop_limit_gtd:
-          $ref: '#/components/schemas/StopLimitStopLimitGtd'
+          $ref: "#/components/schemas/StopLimitStopLimitGtd"
         trigger_bracket_gtc:
-          $ref: '#/components/schemas/TriggerBracketGtc'
+          $ref: "#/components/schemas/TriggerBracketGtc"
         trigger_bracket_gtd:
-          $ref: '#/components/schemas/TriggerBracketGtd'
+          $ref: "#/components/schemas/TriggerBracketGtd"
 
     Fill:
       type: object
@@ -1446,7 +1474,7 @@ components:
         fills:
           type: array
           items:
-            $ref: '#/components/schemas/Fill'
+            $ref: "#/components/schemas/Fill"
         cursor:
           type: string
           example: "789100"
@@ -1455,7 +1483,7 @@ components:
       type: object
       properties:
         order:
-          $ref: '#/components/schemas/Order'
+          $ref: "#/components/schemas/Order"
 
     OrderPreviewRequest:
       type: object
@@ -1466,7 +1494,7 @@ components:
       properties:
         product_id:
           type: string
-          description: The trading pair (e.g. 'BTC-USD')
+          description: The trading pair (e.g. "BTC-USD")
           example: BTC-USD
         side:
           type: string
@@ -1479,16 +1507,16 @@ components:
           type: object
           description: The configuration of the order (e.g. the order type, size, etc).
           oneOf:
-            - $ref: '#/components/schemas/MarketMarketIoc'
-            - $ref: '#/components/schemas/SorLimitIoc'
-            - $ref: '#/components/schemas/LimitLimitGtc'
-            - $ref: '#/components/schemas/LimitLimitGtd'
-            - $ref: '#/components/schemas/LimitLimitFok'
-            - $ref: '#/components/schemas/TwapLimitGtd'
-            - $ref: '#/components/schemas/StopLimitStopLimitGtc'
-            - $ref: '#/components/schemas/StopLimitStopLimitGtd'
-            - $ref: '#/components/schemas/TriggerBracketGtc'
-            - $ref: '#/components/schemas/TriggerBracketGtd'
+            - $ref: "#/components/schemas/MarketMarketIoc"
+            - $ref: "#/components/schemas/SorLimitIoc"
+            - $ref: "#/components/schemas/LimitLimitGtc"
+            - $ref: "#/components/schemas/LimitLimitGtd"
+            - $ref: "#/components/schemas/LimitLimitFok"
+            - $ref: "#/components/schemas/TwapLimitGtd"
+            - $ref: "#/components/schemas/StopLimitStopLimitGtc"
+            - $ref: "#/components/schemas/StopLimitStopLimitGtd"
+            - $ref: "#/components/schemas/TriggerBracketGtc"
+            - $ref: "#/components/schemas/TriggerBracketGtd"
         retail_portfolio_id:
           type: string
           description: (Deprecated) The ID of the portfolio to associate the order with. Only applicable for legacy keys.
@@ -1508,16 +1536,16 @@ components:
           type: object
           description: The configuration of the attached order. Only TriggerBracketGtc is eligible.
           oneOf:
-            - $ref: '#/components/schemas/MarketMarketIoc'
-            - $ref: '#/components/schemas/SorLimitIoc'
-            - $ref: '#/components/schemas/LimitLimitGtc'
-            - $ref: '#/components/schemas/LimitLimitGtd'
-            - $ref: '#/components/schemas/LimitLimitFok'
-            - $ref: '#/components/schemas/TwapLimitGtd'
-            - $ref: '#/components/schemas/StopLimitStopLimitGtc'
-            - $ref: '#/components/schemas/StopLimitStopLimitGtd'
-            - $ref: '#/components/schemas/TriggerBracketGtc'
-            - $ref: '#/components/schemas/TriggerBracketGtd'
+            - $ref: "#/components/schemas/MarketMarketIoc"
+            - $ref: "#/components/schemas/SorLimitIoc"
+            - $ref: "#/components/schemas/LimitLimitGtc"
+            - $ref: "#/components/schemas/LimitLimitGtd"
+            - $ref: "#/components/schemas/LimitLimitFok"
+            - $ref: "#/components/schemas/TwapLimitGtd"
+            - $ref: "#/components/schemas/StopLimitStopLimitGtc"
+            - $ref: "#/components/schemas/StopLimitStopLimitGtd"
+            - $ref: "#/components/schemas/TriggerBracketGtc"
+            - $ref: "#/components/schemas/TriggerBracketGtd"
 
     OrderPreviewResponse:
       type: object
@@ -1647,12 +1675,12 @@ components:
               type: array
               description: List of bid orders
               items:
-                $ref: '#/components/schemas/OrderBookEntry'
+                $ref: "#/components/schemas/OrderBookEntry"
             asks:
               type: array
               description: List of ask orders
               items:
-                $ref: '#/components/schemas/OrderBookEntry'
+                $ref: "#/components/schemas/OrderBookEntry"
             time:
               type: string
               description: Timestamp for the order book

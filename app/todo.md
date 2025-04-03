@@ -38,7 +38,8 @@
   - [X] market orders
 - [ ] get order fill details post execution for accurate accounting
 - [X] CLI/test bed for coinbase trader
-- [ ] Accounts/Balances Generated REST API
+- [X] Accounts/Balances Generated REST API
+- [ ] Execute Order Preview using Generated REST API
 - [ ] Execute Order using Generated REST API
 - [ ] Handle failed orders
 - [ ] Wallet withdrawal

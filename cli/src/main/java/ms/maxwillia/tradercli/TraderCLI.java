@@ -23,7 +23,7 @@ public class TraderCLI {
     private static final Logger logger = LoggerFactory.getLogger(TraderCLI.class);
     
     public static void main(String[] args) {
-        if (args.length < 2) {
+        if (args.length < 4) {
             logger.error("Usage: TradingExample <exchange> <currency> <intermediate> <api-key-path>");
             System.exit(1);
         }

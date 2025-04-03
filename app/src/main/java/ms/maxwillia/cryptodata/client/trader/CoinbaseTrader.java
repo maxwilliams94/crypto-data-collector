@@ -15,7 +15,6 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import ms.maxwillia.cryptodata.apis.coinbase.v3.model.PriceLevel;
 import ms.maxwillia.cryptodata.client.ClientStatus;
 import ms.maxwillia.cryptodata.client.mapper.coinbase.CoinbaseOrderMapper;
 import ms.maxwillia.cryptodata.config.ExchangeCredentials;
@@ -29,15 +28,21 @@ import java.util.concurrent.TimeUnit;
 
 import ms.maxwillia.cryptodata.apis.coinbase.v3.invoker.ApiClient;
 import ms.maxwillia.cryptodata.apis.coinbase.v3.invoker.ApiException;
+import ms.maxwillia.cryptodata.apis.coinbase.v3.api.AccountsApi;
 import ms.maxwillia.cryptodata.apis.coinbase.v3.api.ProductsApi;
+import ms.maxwillia.cryptodata.apis.coinbase.v3.model.GetAccountsResponse;
+import ms.maxwillia.cryptodata.apis.coinbase.v3.model.GetAccountResponse;
+import ms.maxwillia.cryptodata.apis.coinbase.v3.model.Account;
 import ms.maxwillia.cryptodata.apis.coinbase.v3.model.PriceBook;
+import ms.maxwillia.cryptodata.apis.coinbase.v3.model.PriceLevel;
 
 
 class CoinbaseTrader extends BaseExchangeTrader {
     private HttpUrl COINBASE_API_ROOT = HttpUrl.parse("https://api.coinbase.com");
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
-    private final ApiClient apiClient;
+    private final ApiClient baseApiClient;
+    private final HashMap<String, ApiClient> apiClients = new HashMap<>();
 
 
     public CoinbaseTrader(String assetCurrency, String intermediateCurrency, ExchangeCredentials credentials) {
@@ -49,7 +54,7 @@ class CoinbaseTrader extends BaseExchangeTrader {
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .build();
         this.objectMapper = new ObjectMapper();
-        this.apiClient = new ApiClient();
+        this.baseApiClient = new ApiClient();
     }
 
     private static String getSchemelessURL(String url) {
@@ -58,7 +63,11 @@ class CoinbaseTrader extends BaseExchangeTrader {
 
     public void setApiRoot(HttpUrl apiRoot) {
         this.COINBASE_API_ROOT = apiRoot;
-        this.apiClient.setBasePath(apiRoot.toString() + "api/v3");
+        this.baseApiClient.setBasePath(apiRoot.toString() + "api/v3");
+
+        for (ApiClient apiClient : apiClients.values()) {
+            apiClient.setBasePath(apiRoot + "api/v3");
+        }
     }
 
     protected String generateJWT(String requestMethod, String requestUrl) throws Exception {
@@ -102,26 +111,15 @@ class CoinbaseTrader extends BaseExchangeTrader {
         if (isConnected) {
             return true;
         }
+
         try {
-            HttpUrl baseUrl = COINBASE_API_ROOT.resolve("/api/v3/brokerage/accounts");
-            HttpUrl url = baseUrl.newBuilder().addQueryParameter("limit", "1").build();
-            logger.debug("url: {}", url);
-            String jwt = generateJWT("GET", getSchemelessURL(baseUrl.toString()));
-            Request request = new Request.Builder()
-                    .url(url)
-                    .header("Authorization", "Bearer " + jwt)
-                    .build();
-            try (Response response = httpClient.newCall(request).execute()) {
-                if (!response.isSuccessful()) {
-                    logger.error("Connection test failed with response code: {}", response.code());
-                    setStatus(ClientStatus.ERROR);
-                    return false;
-                }
-                isConnected = true;
-                setStatus(ClientStatus.CONNECTED);
-                return true;
-            }
-        } catch (Exception e) {
+            AccountsApi accountsApi = new AccountsApi(getApiClient(AccountsApi.class.getSimpleName()));
+            accountsApi.getApiClient().setBearerToken(jwtFromApi(accountsApi.listAccountsCall(1, null, null)));
+            accountsApi.listAccounts(1,null);
+            isConnected = true;
+            setStatus(ClientStatus.CONNECTED);
+            return true;
+        } catch (ApiException e) {
             logger.error("Failed to connect to Coinbase: {}", e.getMessage());
             setStatus(ClientStatus.ERROR);
             return false;
@@ -361,55 +359,45 @@ class CoinbaseTrader extends BaseExchangeTrader {
         }
     }
 
+    /**
+     * Finds account ids for the specified currencies.
+     * We must iterate through all possible accounts until we find the ones we need
+     * @return true if all account ids were found, false otherwise.
+     */
     public boolean findAccountIds() {
-        logger.info("Finding account ids for currencies: {}", String.join(", ", getCurrencies()));
+        logger.debug("Finding account ids for currencies: {}", String.join(", ", getCurrencies()));
+        AccountsApi accountsApi = new AccountsApi(getApiClient(AccountsApi.class.getSimpleName()));
+
         String cursor = null;
-        HttpUrl baseUrl = COINBASE_API_ROOT.resolve("/api/v3/brokerage/accounts");
         while (this.getAccountIds().size() < getCurrencies().size()) {
             try {
-                HttpUrl.Builder urlBuilder = COINBASE_API_ROOT.newBuilder()
-                        .addPathSegments("api/v3/brokerage/accounts")
-                        .addQueryParameter("limit", "100");
-                if (cursor != null) {
-                    urlBuilder.addQueryParameter("cursor", cursor);
+                accountsApi.getApiClient().setBearerToken(jwtFromApi(accountsApi.listAccountsCall(250, cursor, null)));
+                GetAccountsResponse accountsResponse = accountsApi.listAccounts(250, cursor);
+                List<Account> accounts = accountsResponse.getAccounts();
+                if (accounts.isEmpty()) {
+                    logger.error("No accounts found");
+                    return false;
                 }
-                HttpUrl url = urlBuilder.build();
-                String jwt = generateJWT("GET", getSchemelessURL(baseUrl.toString()));
-                Request request = new Request.Builder()
-                        .url(url)
-                        .header("Authorization", "Bearer " + jwt)
-                        .build();
 
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        logger.error("Failed to fetch account ids - Status: {}", response.code());
-                        return false;
-                    }
-
-                    JsonNode accountsData = objectMapper.readTree(response.body().string());
-                    JsonNode accounts = accountsData.path("accounts");
-
-                    if (accounts.isArray()) {
-                        for (JsonNode account : accounts) {
-                            String currency = account.path("currency").asText();
-                            String accountId = account.path("uuid").asText();
-                            if (getCurrencies().contains(currency)) {
-                                this.getAccountIds().put(currency, accountId);
-                                this.getAccountBalances().put(currency, 0.0);
-                                logger.info("Found account id for {}: {}", currency, accountId);
-                            }
-                        }
-                    }
-                    if (accountsData.get("has_next").asBoolean()) {
-                        cursor = accountsData.get("cursor").asText();
+                for (Account account : accounts) {
+                    if (getCurrencies().contains(account.getCurrency())) {
+                        this.getAccountIds().put(account.getCurrency(), account.getUuid().toString());
+                        this.getAccountBalances().put(account.getCurrency(), Double.parseDouble(account.getAvailableBalance().getValue()));
+                        logger.debug("Found account id for {}: {}", account.getCurrency(), account.getUuid());
                     }
                 }
+                if (accountsResponse.getHasNext()) {
+                    cursor = accountsResponse.getCursor();
+                }
+            } catch (ApiException e) {
+                logger.error("API error during findAccountIds. Return code was {}", e.getCode(), e);
+                return false;
             } catch (Exception e) {
-                logger.error("Failed to fetch account ids: {}", e.getMessage());
+                logger.error("Unexpected error within findAccountIds", e);
                 return false;
             }
         }
-        logger.info("Found {} account ids", this.getAccountIds().size());
+        logger.info("Found {} accountIds ({})", this.getAccountIds().size(), String.join(", ", this.getAccountBalances().keySet()));
         return this.getAccountIds().size() == getCurrencies().size();
     }
 
@@ -420,43 +408,34 @@ class CoinbaseTrader extends BaseExchangeTrader {
             return new HashMap<>();
         }
 
-        if (!isOrderSinceLastBalance()) {
-            return getAccountBalances();
-        }
         if (getAccountIds().size() != getCurrencies().size()) {
             if (!findAccountIds()) {
+                setStatus(ClientStatus.ERROR);
                 throw new IllegalStateException("Failed to find account ids for all currencies");
             }
         }
+
+        AccountsApi accountsApi = new AccountsApi(getApiClient(AccountsApi.class.getSimpleName()));
         for (String currency : getAccountBalances().keySet()) {
+            String accountId = getAccountIds().get(currency);
             try {
-                HttpUrl url = COINBASE_API_ROOT.resolve("/api/v3/brokerage/accounts/" + getAccountIds().get(currency));
-                String jwt = generateJWT("GET", getSchemelessURL(url.toString()));
-                Request request = new Request.Builder()
-                        .url(url)
-                        .header("Authorization", "Bearer " + jwt)
-                        .build();
-
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        logger.error("Failed to fetch balances - Status: {}", response.code());
-                        throw new IllegalStateException("Failed to fetch balances");
-                    }
-
-                    JsonNode accountData = objectMapper.readTree(response.body().string());
-                    JsonNode account = accountData.path("account");
-                    getAccountBalances().put(currency, account.at("/available_balance/value").asDouble());
-                }
+                accountsApi.getApiClient().setBearerToken(jwtFromApi(accountsApi.getAccountCall(UUID.fromString(accountId), null)));
+                GetAccountResponse accountResponse = accountsApi.getAccount(UUID.fromString(accountId));
+                Account account = accountResponse.getAccount();
+                getAccountBalances().put(account.getAvailableBalance().getCurrency(), Double.parseDouble(account.getAvailableBalance().getValue()));
+            } catch (ApiException e) {
+                setStatus(ClientStatus.ERROR);
+                logger.error("API error when attempting to getBalances. Return code was {}", e.getCode(), e);
             } catch (Exception e) {
-                logger.error("Failed to fetch balances: {}", e.getMessage());
+                setStatus(ClientStatus.ERROR);
+                logger.error("Unexpected error while getting balances", e);
             }
         }
-        setOrderSinceLastBalance(false);
         return getAccountBalances();
     }
 
     private double getBidOrAsk(TransactionSide side, String pair) throws ApiException {
-        ProductsApi productsApi = new ProductsApi(apiClient);
+        ProductsApi productsApi = new ProductsApi(getApiClient(ProductsApi.class.getSimpleName()));
         productsApi.getApiClient().setBearerToken(jwtFromApi(productsApi.getBestBidAskCall(List.of(pair), null)));
         PriceBook priceBook;
         try {
@@ -506,6 +485,18 @@ class CoinbaseTrader extends BaseExchangeTrader {
         } catch (Exception e) {
             logger.error("Failed to generate JWT for {}: {}", method, jwtUrl, e);
             return "";
+        }
+    }
+
+    private ApiClient getApiClient(String key) {
+        if (apiClients.containsKey(key)) {
+            return apiClients.get(key);
+        } else {
+            ApiClient apiClient = new ApiClient();
+            apiClient.setBasePath(baseApiClient.getBasePath());
+            apiClients.put(key, apiClient);
+            logger.debug("Created new ApiClient for {} ({})", key, apiClients.size());
+            return apiClient;
         }
     }
 

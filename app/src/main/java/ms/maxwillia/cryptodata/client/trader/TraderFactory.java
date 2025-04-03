@@ -28,7 +28,7 @@ public class TraderFactory {
     public static ExchangeTrader createTrader(
             String exchangeName, 
             String currency,
-            String intemediateCurrency,
+            String intermediateCurrency,
             String apiKeyPath) throws IllegalArgumentException, IOException {
         
         // Validate inputs
@@ -48,7 +48,7 @@ public class TraderFactory {
             case "coinbase":
                 return createCoinbaseTrader(currency, apiKeyPath);
             case "firi":
-                return createFiriTrader(currency, intemediateCurrency, apiKeyPath);
+                return createFiriTrader(currency, intermediateCurrency, apiKeyPath);
             default:
                 throw new IllegalArgumentException("Unsupported exchange: " + exchangeName);
         }
