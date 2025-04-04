@@ -39,9 +39,10 @@
 - [ ] get order fill details post execution for accurate accounting
 - [X] CLI/test bed for coinbase trader
 - [X] Accounts/Balances Generated REST API
-- [ ] Execute Order Preview using Generated REST API
-- [ ] Execute Order using Generated REST API
-- [ ] Handle failed orders
+- [X] Execute Order Preview using Generated REST API
+- [X] Execute Order using Generated REST API
+- [X] Handle failed orders
+- [ ] Take trader offline if order fails
 - [ ] Wallet withdrawal
 
 #### CLI
@@ -54,8 +55,9 @@
 - [X] Authentication (simple)
 - [X] MarketBuy intermediate at unknown price
 - [X] Testing
-- [ ] handle successful order
-- [ ] handle failed order
+- [X] handle successful order
+- [X] handle failed order
+- [ ] Take trader offline if order fails
 - [ ] ~~requestMapper~~
 - [ ] get order fill details post execution for accurate accounting
 

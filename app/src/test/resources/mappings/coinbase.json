@@ -68,10 +68,12 @@
         },
         "jsonBody": {
           "success": true,
-          "order_id": "11111-00000-000000",
-          "product_id": "BTC-USD",
-          "side": "BUY",
-          "client_order_id": "1111-11111-111111",
+          "success_response": {
+            "order_id": "11111-00000-000000",
+            "product_id": "BTC-USD",
+            "side": "BUY",
+            "client_order_id": "1111-11111-111111"
+          },
           "order_configuration":
             {"market_market_ioc":
               {"quote_size": 100.00,
@@ -103,9 +105,12 @@
         },
         "jsonBody": {
           "success": false,
-          "message": "The order configuration was invalid",
-          "error_details": "Market orders cannot be placed with empty order sizes",
-          "new_order_failure_reason": "UNKNOWN_FAILURE_REASON",
+          "error_response": {
+            "message": "The order configuration was invalid",
+            "error_details": "Market orders cannot be placed with empty order sizes",
+            "preview_failure_reason": "UNKNOWN_FAILURE_REASON",
+            "new_order_failure_reason": "UNKNOWN_FAILURE_REASON"
+          },
           "order_configuration":
           {
             "market_market_ioc": {
@@ -282,22 +287,24 @@
           "Content-Type": "application/json"
         },
         "jsonBody": {
-          "pricebooks": {
-            "product_id": "BTC-USDC",
-            "bids": [
-              {
-                "price": "100000.00",
-                "size": "0.0001"
-              }
-            ],
-            "asks": [
-              {
-                "price": "100000.0",
-                "size": "0.0001"
-              }
-            ],
-            "time": "12345"
-          }
+          "pricebooks": [
+            {
+              "product_id": "BTC-USDC",
+              "bids": [
+                {
+                  "price": "100000.00",
+                  "size": "0.0001"
+                }
+              ],
+              "asks": [
+                {
+                  "price": "100000.0",
+                  "size": "0.0001"
+                }
+              ],
+              "time": "2025-04-04T19:15:15.110342Z"
+            }
+          ]
         }
       }
     }

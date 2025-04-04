@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Objects;
 
 import org.junit.jupiter.api.*;
 import org.testcontainers.junit.jupiter.*;
@@ -45,7 +46,7 @@ class CoinbaseTraderTest {
     @BeforeEach
     public void setUp() throws IOException {
         coinbaseTrader = new CoinbaseTrader(TEST_CURRENCY, null, credentials);
-        coinbaseTrader.setApiRoot(HttpUrl.parse(wireMockContainer.getBaseUrl()));
+        coinbaseTrader.setApiRoot(Objects.requireNonNull(HttpUrl.parse(wireMockContainer.getBaseUrl() + "/api/v3")));
     }
 
     @AfterEach
@@ -129,22 +130,22 @@ class CoinbaseTraderTest {
         coinbaseTrader.connect();
         var transaction = coinbaseTrader.marketBuy(0.01, SUCCESS_CLIENT_ORDER_ID);
         assert coinbaseTrader.getTransactions().size() == 1;
-        assert coinbaseTrader.getTransactions().getFirst().getStatus().equals(TransactionStatus.EXECUTED);
-        assert transaction.getFirst().getStatus().equals(TransactionStatus.EXECUTED);
+        assert coinbaseTrader.getTransactions().getFirst().getStatus().equals(TransactionStatus.REQUESTED);
+        assert transaction.getFirst().getStatus().equals(TransactionStatus.REQUESTED);
         assert transaction.getFirst().getResponse() != null;
         assert transaction.getFirst().getExchangeId().equals("11111-00000-000000");
     }
 
     @Test
-    void testMarketBuyExecuteFail() {
+    void testMarketBuyFail() {
         coinbaseTrader.initialize();
         coinbaseTrader.enableTrading();
         coinbaseTrader.disablePreviewTrading();
         coinbaseTrader.connect();
         var transaction = coinbaseTrader.marketBuy(0.01, FAIL_CLIENT_ORDER_ID);
         assert coinbaseTrader.getTransactions().size() == 1;
-        assert coinbaseTrader.getTransactions().getFirst().getStatus().equals(TransactionStatus.EXECUTION_ERROR);
-        assert transaction.getFirst().getStatus().equals(TransactionStatus.EXECUTION_ERROR);
+        assert coinbaseTrader.getTransactions().getFirst().getStatus().equals(TransactionStatus.REQUEST_ERROR);
+        assert transaction.getFirst().getStatus().equals(TransactionStatus.REQUEST_ERROR);
         assert transaction.getFirst().getResponse() != null;
         assert transaction.getFirst().getId().equals(FAIL_CLIENT_ORDER_ID);
     }

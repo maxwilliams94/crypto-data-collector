@@ -55,6 +55,13 @@ public class TraderCLI {
             logger.info("Connected to {} for {}", trader.getExchangeName(), trader.getExchangeTradePair());
 
             // Interactive trading menu
+//            try {
+//                trader.getSpotAssetPrice(TransactionSide.BUY);
+//            } catch (Exception e) {
+//                logger.error("Error getting spot price", e);
+//                trader.disconnect();
+//                System.exit(1);
+//            }
             traderMenu(trader);
             
         } catch (IOException e) {

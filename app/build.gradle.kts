@@ -52,6 +52,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("io.gsonfire:gson-fire:1.8.5")
     implementation("com.google.code.findbugs:jsr305:3.0.2")
+    implementation("org.openapitools:jackson-databind-nullable:0.2.1")
 
     // Testing dependencies
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
